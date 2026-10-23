@@ -20,7 +20,8 @@ import { Footer } from './components/Footer';
 import { VerifyResponse, HistoryItem } from './types';
 import { Language, translations } from './i18n';
 import { verifyNews, getReport, getHistory, clearHistory as apiClearHistory, checkHealth } from './api';
-import { AlertCircle, Flag, RotateCcw } from 'lucide-react';
+import { AlertCircle, Flag, RotateCcw, ChevronDown } from 'lucide-react';
+import { SectionNavigator } from './components/SectionNavigator';
 
 export function App() {
   // Theme state
@@ -192,116 +193,159 @@ export function App() {
         historyCount={history.length}
       />
 
-      {/* Main Container */}
-      <main className="flex-1 pb-16">
-        {/* Hero Section */}
-        <Hero lang={lang} liveSearchActive={liveSearchReady} />
+      {/* Section Layer Indicator */}
+      <SectionNavigator lang={lang} hasReport={Boolean(currentReport && !isLoading)} />
 
-        {/* Verification Input Box */}
-        <VerificationInput
-          lang={lang}
-          onSubmit={handleVerify}
-          isLoading={isLoading || isFinishing}
-          onSelectDemo={loadReportById}
-        />
+      {/* Main Layered Container */}
+      <main className="flex-1">
+        {/* Layer 1: Verification Hub (Hero & Interactive Console) */}
+        <section
+          id="section-verify"
+          className="snap-layer-section min-h-[calc(100vh-4rem)] flex flex-col justify-center py-6 sm:py-10 relative"
+        >
+          <Hero lang={lang} liveSearchActive={liveSearchReady} />
 
-        {/* Error Alert with Retry Action */}
-        {errorMessage && (
-          <div className="max-w-4xl mx-auto px-4 mt-6">
-            <div className="p-4 rounded-xl bg-red-50 dark:bg-red-950/50 border border-red-300 dark:border-red-900 text-red-700 dark:text-red-300 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-md">
-              <div className="flex items-start gap-3">
-                <AlertCircle className="w-5 h-5 shrink-0 mt-0.5 text-red-600 dark:text-red-400" />
-                <div className="text-sm">
-                  <span className="font-bold block">Verification Notice</span>
-                  <span>{errorMessage}</span>
-                </div>
-              </div>
-              {lastPayload && (
-                <button
-                  onClick={() => handleVerify(lastPayload)}
-                  className="flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-600 hover:bg-red-500 text-white text-xs font-bold shrink-0 transition-colors shadow-sm active:scale-95 self-end sm:self-auto"
-                >
-                  <RotateCcw className="w-3.5 h-3.5" />
-                  <span>{t.btn_retry}</span>
-                </button>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Active Futuristic Verification AI Scanner */}
-        {isLoading && (
-          <ProgressStepper
+          <VerificationInput
             lang={lang}
-            submittedText={lastPayload?.text || lastPayload?.url || ''}
-            isComplete={isFinishing}
+            onSubmit={handleVerify}
+            isLoading={isLoading || isFinishing}
+            onSelectDemo={loadReportById}
           />
-        )}
+
+          {/* Error Alert with Retry Action */}
+          {errorMessage && (
+            <div className="max-w-4xl mx-auto px-4 mt-6">
+              <div className="p-4 rounded-xl bg-red-50 dark:bg-red-950/50 border border-red-300 dark:border-red-900 text-red-700 dark:text-red-300 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-md">
+                <div className="flex items-start gap-3">
+                  <AlertCircle className="w-5 h-5 shrink-0 mt-0.5 text-red-600 dark:text-red-400" />
+                  <div className="text-sm">
+                    <span className="font-bold block">Verification Notice</span>
+                    <span>{errorMessage}</span>
+                  </div>
+                </div>
+                {lastPayload && (
+                  <button
+                    onClick={() => handleVerify(lastPayload)}
+                    className="flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-600 hover:bg-red-500 text-white text-xs font-bold shrink-0 transition-colors shadow-sm active:scale-95 self-end sm:self-auto"
+                  >
+                    <RotateCcw className="w-3.5 h-3.5" />
+                    <span>{t.btn_retry}</span>
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Active Futuristic Verification AI Scanner */}
+          {isLoading && (
+            <div className="mt-8">
+              <ProgressStepper
+                lang={lang}
+                submittedText={lastPayload?.text || lastPayload?.url || ''}
+                isComplete={isFinishing}
+              />
+            </div>
+          )}
+
+          {/* Subtle Layer Glide Prompt on Homepage */}
+          {!currentReport && !isLoading && (
+            <div className="mt-6 sm:mt-10 flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 text-xs">
+              <button
+                type="button"
+                onClick={() => document.getElementById('section-demos')?.scrollIntoView({ behavior: 'smooth' })}
+                className="group flex flex-col items-center gap-1.5 hover:text-cyan-500 dark:hover:text-cyan-400 transition-colors focus:outline-none"
+                aria-label="Scroll to case studies"
+              >
+                <span className="font-medium tracking-wide">
+                  {lang === 'en' ? 'Explore Verified Cases & Methodology' : '???????? ??? ? ???????????? ?????'}
+                </span>
+                <ChevronDown className="w-4 h-4 animate-bounce" />
+              </button>
+            </div>
+          )}
+        </section>
 
         {/* Verification Report View with Smooth Reveal Transition */}
         {currentReport && !isLoading && (
           <div
             ref={reportRef}
-            className="max-w-5xl mx-auto px-4 mt-12 space-y-8 animate-fadeIn transition-all duration-700 ease-out"
+            className="max-w-5xl mx-auto px-4 mt-8 space-y-16 animate-fadeIn transition-all duration-700 ease-out"
           >
-            {/* Verdict Header */}
-            <VerdictHeader report={currentReport} lang={lang} />
+            {/* Report Layer 1: Verdict Header & Claim Breakdown */}
+            <section id="section-report-verdict" className="snap-layer-section space-y-8 scroll-mt-20">
+              <VerdictHeader report={currentReport} lang={lang} />
+              <ClaimBreakdown claims={currentReport.extracted_claims} lang={lang} />
+            </section>
 
-            {/* Individual Extracted Claims Breakdown */}
-            <ClaimBreakdown claims={currentReport.extracted_claims} lang={lang} />
+            {/* Report Layer 2: Evidence Sources Panel */}
+            <section id="section-report-sources" className="snap-layer-section scroll-mt-20">
+              <EvidencePanel sources={currentReport.evidence_sources} lang={lang} />
+            </section>
 
-            {/* Evidence Sources Panel */}
-            <EvidencePanel sources={currentReport.evidence_sources} lang={lang} />
+            {/* Report Layer 3: Side-by-side Source Comparison Matrix & Assessment */}
+            <section id="section-report-matrix" className="snap-layer-section space-y-8 scroll-mt-20">
+              <SourceComparison comparison={currentReport.source_comparison} lang={lang} />
 
-            {/* Side-by-side Source Comparison Matrix */}
-            <SourceComparison comparison={currentReport.source_comparison} lang={lang} />
+              <ConfidenceCoverage
+                confidence={currentReport.confidence_level}
+                confidenceReason={currentReport.confidence_reason}
+                coverage={currentReport.research_coverage}
+                coverageReason={currentReport.coverage_reason}
+                lang={lang}
+              />
 
-            {/* Qualitative Assessment Confidence & Research Coverage */}
-            <ConfidenceCoverage
-              confidence={currentReport.confidence_level}
-              confidenceReason={currentReport.confidence_reason}
-              coverage={currentReport.research_coverage}
-              coverageReason={currentReport.coverage_reason}
-              lang={lang}
-            />
+              <MethodologySection
+                method={currentReport.verification_method}
+                limitations={currentReport.limitations}
+                lang={lang}
+              />
 
-            {/* Verification Methodology & Limitations */}
-            <MethodologySection
-              method={currentReport.verification_method}
-              limitations={currentReport.limitations}
-              lang={lang}
-            />
-
-            {/* Bottom Feedback Bar */}
-            <div className="p-4 rounded-2xl bg-white dark:bg-navy-900 border border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-md">
-              <div className="text-xs text-slate-500 dark:text-slate-400 text-center sm:text-left">
-                <span className="font-semibold text-slate-700 dark:text-slate-300 block">
-                  Found an inaccuracy or broken link in this report?
-                </span>
-                <span>TruthLens invites transparent citizen and researcher feedback.</span>
+              {/* Bottom Feedback Bar */}
+              <div className="p-4 rounded-2xl bg-white dark:bg-navy-900 border border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-md">
+                <div className="text-xs text-slate-500 dark:text-slate-400 text-center sm:text-left">
+                  <span className="font-semibold text-slate-700 dark:text-slate-300 block">
+                    Found an inaccuracy or broken link in this report?
+                  </span>
+                  <span>TruthLens invites transparent citizen and researcher feedback.</span>
+                </div>
+                <button
+                  onClick={() => setIsFeedbackOpen(true)}
+                  className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-amber-700 dark:text-amber-400 border border-amber-300 dark:border-amber-800/80 bg-amber-50 dark:bg-amber-950/40 hover:bg-amber-100 dark:hover:bg-amber-900/60 transition-colors shrink-0"
+                >
+                  <Flag className="w-3.5 h-3.5" />
+                  <span>Submit Correction</span>
+                </button>
               </div>
-              <button
-                onClick={() => setIsFeedbackOpen(true)}
-                className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-amber-700 dark:text-amber-400 border border-amber-300 dark:border-amber-800/80 bg-amber-50 dark:bg-amber-950/40 hover:bg-amber-100 dark:hover:bg-amber-900/60 transition-colors shrink-0"
-              >
-                <Flag className="w-3.5 h-3.5" />
-                <span>Submit Correction</span>
-              </button>
-            </div>
+            </section>
           </div>
         )}
 
         {/* Demonstration Case Studies Showcase */}
         {!currentReport && !isLoading && (
           <>
-            <DemoShowcase onSelectDemo={loadReportById} lang={lang} />
-            <HowItWorks lang={lang} />
+            {/* Layer 2: Case Studies Showcase */}
+            <section
+              id="section-demos"
+              className="snap-layer-section min-h-[calc(100vh-4rem)] flex flex-col justify-center py-12 sm:py-16"
+            >
+              <DemoShowcase onSelectDemo={loadReportById} lang={lang} />
+            </section>
+
+            {/* Layer 3: Methodology & Engine Standard */}
+            <section
+              id="section-methodology"
+              className="snap-layer-section min-h-[calc(100vh-4rem)] flex flex-col justify-center py-12 sm:py-16"
+            >
+              <HowItWorks lang={lang} />
+            </section>
           </>
         )}
       </main>
 
-      {/* Footer */}
-      <Footer lang={lang} />
+      {/* Layer 4: Footer */}
+      <div id="section-footer" className="snap-layer-section">
+        <Footer lang={lang} />
+      </div>
 
       {/* Modals & Drawers */}
       <HistoryDrawer

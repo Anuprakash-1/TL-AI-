@@ -3,9 +3,28 @@
 @tailwind utilities;
 
 @layer base {
+  html {
+    scroll-behavior: smooth;
+    scroll-padding-top: 4.5rem;
+    scroll-snap-type: y proximity;
+  }
+
+  @media (min-width: 1024px) {
+    html {
+      scroll-snap-type: y mandatory;
+    }
+  }
+
   body {
     @apply bg-slate-50 text-slate-900 dark:bg-navy-950 dark:text-slate-100 min-h-screen antialiased transition-colors duration-200;
   }
+}
+
+/* Layer-by-layer section snap alignment */
+.snap-layer-section {
+  scroll-snap-align: start;
+  scroll-snap-stop: normal;
+  scroll-margin-top: 4.5rem;
 }
 
 /* Custom scrollbars */
@@ -185,5 +204,16 @@
   .shimmer-card {
     animation: none !important;
     transition: none !important;
+  }
+}
+
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto !important;
+    scroll-snap-type: none !important;
+  }
+  .snap-layer-section {
+    scroll-snap-align: none !important;
   }
 }
