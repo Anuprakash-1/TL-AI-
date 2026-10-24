@@ -1,5 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Link as LinkIcon, FileText, Globe, Calendar, MapPin, Sparkles, X, ShieldAlert } from 'lucide-react';
+import {
+  Search,
+  Link as LinkIcon,
+  FileText,
+  Globe,
+  Calendar,
+  MapPin,
+  Sparkles,
+  X,
+  ShieldAlert,
+  ChevronDown,
+  ChevronUp,
+  ArrowRight,
+  SlidersHorizontal,
+} from 'lucide-react';
 import { Language, translations } from '../i18n';
 
 interface VerificationInputProps {
@@ -28,6 +42,7 @@ export const VerificationInput: React.FC<VerificationInputProps> = ({
   const [country, setCountry] = useState('IN');
   const [inputLang, setInputLang] = useState('auto');
   const [asOfDate, setAsOfDate] = useState('');
+  const [showFilters, setShowFilters] = useState(false);
 
   // Handle Ctrl+Enter submission
   useEffect(() => {
@@ -74,69 +89,90 @@ export const VerificationInput: React.FC<VerificationInputProps> = ({
     {
       id: 'DEMO-TL-RBI2000',
       label: lang === 'en' ? 'RBI ₹2000 GPS Chip' : '₹2000 नोट में जीपीएस चिप',
-      sampleText: 'Reserve Bank of India has embedded NGC Nano GPS Chips in ₹2000 notes allowing satellites to track money underground.',
+      sampleText:
+        'Reserve Bank of India has embedded NGC Nano GPS Chips in ₹2000 notes allowing satellites to track money underground.',
     },
     {
       id: 'DEMO-TL-ISRO3',
       label: lang === 'en' ? 'Chandrayaan-3 Moon Landing' : 'चंद्रयान-3 की सॉफ्ट लैंडिंग',
-      sampleText: 'India Chandrayaan-3 successfully completed soft landing on lunar south pole on August 23, 2023.',
+      sampleText:
+        'India Chandrayaan-3 successfully completed soft landing on lunar south pole on August 23, 2023.',
     },
     {
       id: 'DEMO-TL-KANYASUMANGALA',
       label: lang === 'en' ? 'Govt ₹50,000 Scheme Forward' : 'कन्या सुमंगला ₹50,000 मैसेज',
-      sampleText: 'वायरल मैसेज: केंद्र सरकार की नई योजना के तहत हर बेटी को ₹50,000 की राशि सीधे बैंक खाते में दी जा रही है।',
+      sampleText:
+        'वायरल मैसेज: केंद्र सरकार की नई योजना के तहत हर बेटी को ₹50,000 की राशि सीधे बैंक खाते में दी जा रही है।',
     },
     {
       id: 'DEMO-TL-SOLARSTORM',
       label: lang === 'en' ? 'NASA Internet Apocalypse' : 'नासा सोलर स्टॉर्म इंटरनेट ब्लैकआउट',
-      sampleText: 'NASA officially warned of an impending solar superstorm that will shut down the internet worldwide for 6 months.',
+      sampleText:
+        'NASA officially warned of an impending solar superstorm that will shut down the internet worldwide for 6 months.',
     },
   ];
 
   return (
-    <div className="w-full max-w-4xl mx-auto px-4 mt-2">
-      <div className="bg-white/85 dark:bg-navy-900/80 backdrop-blur-md border border-slate-200/80 dark:border-slate-800/80 rounded-2xl shadow-xl overflow-hidden transition-all duration-200">
-        {/* Tab headers */}
-        <div className="flex border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-navy-950/50 p-1">
-          <button
-            type="button"
-            onClick={() => setActiveTab('text')}
-            className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-sm font-semibold transition-all ${
-              activeTab === 'text'
-                ? 'bg-white dark:bg-navy-800 text-blue-600 dark:text-cyan-400 shadow-sm'
-                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
-            }`}
-          >
-            <FileText className="w-4 h-4" />
-            <span>{t.tab_text}</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab('url')}
-            className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-sm font-semibold transition-all ${
-              activeTab === 'url'
-                ? 'bg-white dark:bg-navy-800 text-blue-600 dark:text-cyan-400 shadow-sm'
-                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
-            }`}
-          >
-            <LinkIcon className="w-4 h-4" />
-            <span>{t.tab_url}</span>
-          </button>
+    <div className="w-full max-w-4xl mx-auto px-4 mt-2 select-none">
+      {/* Wegic-Style Floating AI Assistant Glassmorphism Box */}
+      <div className="bg-neutral-900/75 dark:bg-black/75 backdrop-blur-2xl border border-white/15 dark:border-white/10 rounded-2xl sm:rounded-3xl shadow-2xl p-4 sm:p-6 transition-all duration-300 hover:border-white/25">
+        {/* Top Assistant Greeting Line (Replicating "👋 I'm Wegic, the AI web designer & developer by your side!") */}
+        <div className="flex items-center justify-between pb-3 mb-3 border-b border-white/10">
+          <div className="flex items-center gap-2 text-xs sm:text-sm font-medium text-white/90">
+            <span className="text-base sm:text-lg">👋</span>
+            <span className="text-white/80">
+              {lang === 'en'
+                ? "I'm TruthLens, the AI misinformation & fact verification engine by your side!"
+                : 'नमस्ते, मैं ट्रूथ-लेंस हूँ, आपका निष्पक्ष AI तथ्य-सत्यापन सहायक!'}
+            </span>
+          </div>
+
+          {/* Mode Switcher Tabs (Text / URL) */}
+          <div className="flex items-center gap-1 bg-white/5 p-1 rounded-xl border border-white/10 text-xs">
+            <button
+              type="button"
+              onClick={() => setActiveTab('text')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-semibold transition-all ${
+                activeTab === 'text'
+                  ? 'bg-white text-neutral-950 shadow-sm'
+                  : 'text-white/60 hover:text-white'
+              }`}
+            >
+              <FileText className="w-3.5 h-3.5" />
+              <span>{t.tab_text}</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('url')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-semibold transition-all ${
+                activeTab === 'url'
+                  ? 'bg-white text-neutral-950 shadow-sm'
+                  : 'text-white/60 hover:text-white'
+              }`}
+            >
+              <LinkIcon className="w-3.5 h-3.5" />
+              <span>{t.tab_url}</span>
+            </button>
+          </div>
         </div>
 
         {/* Form Body */}
-        <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-3">
           {activeTab === 'text' ? (
             <div className="relative">
               <textarea
                 value={text}
                 onChange={(e) => setText(e.target.value)}
-                placeholder={t.placeholder_text}
-                rows={5}
+                placeholder={
+                  lang === 'en'
+                    ? 'Chat with me or paste any news claim, statement, viral forward, or article...'
+                    : 'मुझसे पूछें या कोई भी समाचार, सोशल मीडिया दावा, भाषण या वायरल संदेश यहाँ पेस्ट करें...'
+                }
+                rows={4}
                 maxLength={15000}
-                className="w-full p-4 rounded-xl bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm leading-relaxed resize-y"
+                className="w-full p-4 rounded-xl sm:rounded-2xl bg-neutral-950/60 border border-white/10 text-white placeholder-white/40 focus:outline-none focus:ring-1 focus:ring-white/40 text-sm leading-relaxed resize-y selection:bg-cyan-500/30"
               />
-              <div className="flex justify-between items-center mt-1 px-1 text-[11px] text-slate-400">
+              <div className="flex justify-between items-center mt-1 px-1 text-[11px] text-white/40">
                 <span>Ctrl + Enter to verify</span>
                 <span>
                   {text.length} / 15,000 {t.chars_limit}
@@ -151,109 +187,125 @@ export const VerificationInput: React.FC<VerificationInputProps> = ({
                   value={url}
                   onChange={(e) => setUrl(e.target.value)}
                   placeholder={t.placeholder_url}
-                  className="w-full pl-11 pr-10 py-3.5 rounded-xl bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                  className="w-full pl-11 pr-10 py-3.5 rounded-xl sm:rounded-2xl bg-neutral-950/60 border border-white/10 text-white placeholder-white/40 focus:outline-none focus:ring-1 focus:ring-white/40 text-sm"
                 />
-                <LinkIcon className="w-5 h-5 absolute left-3.5 top-3.5 text-slate-400" />
+                <LinkIcon className="w-5 h-5 absolute left-3.5 top-3.5 text-white/40" />
                 {url && (
                   <button
                     type="button"
                     onClick={() => setUrl('')}
-                    className="absolute right-3.5 top-3.5 text-slate-400 hover:text-slate-600"
+                    className="absolute right-3.5 top-3.5 text-white/40 hover:text-white transition-colors"
                   >
                     <X className="w-4 h-4" />
                   </button>
                 )}
               </div>
-              <div className="flex items-center gap-2 p-2.5 rounded-lg bg-blue-50/70 dark:bg-blue-950/30 border border-blue-200/50 dark:border-blue-900/40 text-xs text-blue-700 dark:text-blue-300">
-                <ShieldAlert className="w-4 h-4 shrink-0 text-blue-600 dark:text-blue-400" />
+              <div className="flex items-center gap-2 p-2.5 rounded-xl bg-cyan-950/40 border border-cyan-800/40 text-xs text-cyan-200">
+                <ShieldAlert className="w-4 h-4 shrink-0 text-cyan-400" />
                 <span>
-                  SSRF Protection Active: Internal network domains (127.0.0.1, 10.x, metadata) are blocked. If the article is behind a paywall, please copy and paste the text in the Text tab.
+                  SSRF Protection Active: Internal network domains (127.0.0.1, 10.x, metadata) are blocked.
                 </span>
               </div>
             </div>
           )}
 
-          {/* Quick Sample Chips */}
-          <div className="flex flex-wrap items-center gap-2 pt-1 pb-1">
-            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 flex items-center gap-1">
-              <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-              {t.quick_tests}
+          {/* Prompt Suggestions (Directly replicating the "⚡ Reference: I want a website..." row in reference) */}
+          <div className="flex flex-wrap items-center gap-1.5 pt-1 text-xs text-white/60">
+            <span className="flex items-center gap-1 font-semibold text-white/80 shrink-0">
+              <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+              <span>Reference:</span>
             </span>
-            {sampleChips.map((chip) => (
-              <button
-                key={chip.id}
-                type="button"
-                onClick={() => {
-                  setActiveTab('text');
-                  setText(chip.sampleText);
-                  onSelectDemo(chip.id);
-                }}
-                className="px-2.5 py-1 rounded-lg text-xs border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-navy-800 text-slate-700 dark:text-slate-300 hover:border-blue-400 dark:hover:border-cyan-500 hover:bg-blue-50 dark:hover:bg-navy-700 transition-all font-medium"
-              >
-                {chip.label}
-              </button>
+            {sampleChips.map((chip, index) => (
+              <React.Fragment key={chip.id}>
+                {index > 0 && <span className="text-white/20">|</span>}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveTab('text');
+                    setText(chip.sampleText);
+                    onSelectDemo(chip.id);
+                  }}
+                  className="hover:text-white hover:underline transition-colors text-white/70"
+                >
+                  "{chip.label}"
+                </button>
+              </React.Fragment>
             ))}
           </div>
 
-          {/* Filter options row */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 border-t border-slate-200 dark:border-slate-800">
-            {/* Country Context */}
-            <div>
-              <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1 flex items-center gap-1">
-                <MapPin className="w-3.5 h-3.5 text-blue-500" />
-                {t.filter_country}
-              </label>
-              <select
-                value={country}
-                onChange={(e) => setCountry(e.target.value)}
-                className="w-full px-3 py-2 rounded-lg bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-slate-800 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500"
-              >
-                <option value="IN">India (PIB, ECI, Courts, Indian News)</option>
-                <option value="US">United States (AP, Reuters, Federal Archives)</option>
-                <option value="GB">United Kingdom (BBC, Reuters, UK Govt)</option>
-                <option value="GLOBAL">Global / International (WHO, UN, International Wires)</option>
-              </select>
-            </div>
+          {/* Advanced Filter Collapsible Bar */}
+          <div className="pt-2">
+            <button
+              type="button"
+              onClick={() => setShowFilters(!showFilters)}
+              className="inline-flex items-center gap-1.5 text-xs text-white/50 hover:text-white/80 transition-colors"
+            >
+              <SlidersHorizontal className="w-3 h-3" />
+              <span>{showFilters ? 'Hide Advanced Filters' : 'Advanced Filters (Country, Language, Date)'}</span>
+              {showFilters ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+            </button>
 
-            {/* Language */}
-            <div>
-              <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1 flex items-center gap-1">
-                <Globe className="w-3.5 h-3.5 text-indigo-500" />
-                {t.filter_lang}
-              </label>
-              <select
-                value={inputLang}
-                onChange={(e) => setInputLang(e.target.value)}
-                className="w-full px-3 py-2 rounded-lg bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-slate-800 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500"
-              >
-                <option value="auto">Auto-detect (English / हिंदी)</option>
-                <option value="en">English</option>
-                <option value="hi">हिंदी (Hindi)</option>
-              </select>
-            </div>
+            {showFilters && (
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-3 mt-2 border-t border-white/10 animate-fadeIn">
+                {/* Country Context */}
+                <div>
+                  <label className="block text-xs font-medium text-white/60 mb-1 flex items-center gap-1">
+                    <MapPin className="w-3.5 h-3.5 text-cyan-400" />
+                    {t.filter_country}
+                  </label>
+                  <select
+                    value={country}
+                    onChange={(e) => setCountry(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl bg-neutral-950/80 border border-white/15 text-xs text-white focus:outline-none focus:ring-1 focus:ring-white/40"
+                  >
+                    <option value="IN">India (PIB, ECI, Courts, Indian News)</option>
+                    <option value="US">United States (AP, Reuters, Federal Archives)</option>
+                    <option value="GB">United Kingdom (BBC, Reuters, UK Govt)</option>
+                    <option value="GLOBAL">Global / International (WHO, UN, International Wires)</option>
+                  </select>
+                </div>
 
-            {/* As-Of Date */}
-            <div>
-              <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1 flex items-center gap-1">
-                <Calendar className="w-3.5 h-3.5 text-cyan-500" />
-                {t.filter_date}
-              </label>
-              <input
-                type="date"
-                value={asOfDate}
-                onChange={(e) => setAsOfDate(e.target.value)}
-                className="w-full px-3 py-2 rounded-lg bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-slate-800 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500"
-              />
-            </div>
+                {/* Language */}
+                <div>
+                  <label className="block text-xs font-medium text-white/60 mb-1 flex items-center gap-1">
+                    <Globe className="w-3.5 h-3.5 text-indigo-400" />
+                    {t.filter_lang}
+                  </label>
+                  <select
+                    value={inputLang}
+                    onChange={(e) => setInputLang(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl bg-neutral-950/80 border border-white/15 text-xs text-white focus:outline-none focus:ring-1 focus:ring-white/40"
+                  >
+                    <option value="auto">Auto-detect (English / हिंदी)</option>
+                    <option value="en">English</option>
+                    <option value="hi">हिंदी (Hindi)</option>
+                  </select>
+                </div>
+
+                {/* As-Of Date */}
+                <div>
+                  <label className="block text-xs font-medium text-white/60 mb-1 flex items-center gap-1">
+                    <Calendar className="w-3.5 h-3.5 text-amber-400" />
+                    {t.filter_date}
+                  </label>
+                  <input
+                    type="date"
+                    value={asOfDate}
+                    onChange={(e) => setAsOfDate(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl bg-neutral-950/80 border border-white/15 text-xs text-white focus:outline-none focus:ring-1 focus:ring-white/40"
+                  />
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Action Row */}
-          <div className="flex items-center justify-between pt-2">
+          <div className="flex items-center justify-between pt-2 border-t border-white/10">
             {(text || url) && (
               <button
                 type="button"
                 onClick={handleClear}
-                className="px-3 py-2 rounded-lg text-xs font-medium text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 transition-colors"
+                className="px-3 py-2 rounded-xl text-xs font-medium text-white/50 hover:text-white transition-colors"
               >
                 {t.btn_clear}
               </button>
@@ -262,27 +314,61 @@ export const VerificationInput: React.FC<VerificationInputProps> = ({
               <button
                 type="submit"
                 disabled={isLoading || (activeTab === 'text' ? !text.trim() : !url.trim())}
-                className={`flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-sm text-white shadow-lg transition-all ${
+                className={`flex items-center gap-2 px-6 py-2.5 rounded-full font-bold text-sm text-neutral-950 bg-white hover:bg-slate-100 shadow-xl transition-all duration-200 active:scale-95 ${
                   isLoading || (activeTab === 'text' ? !text.trim() : !url.trim())
-                    ? 'bg-slate-400 dark:bg-slate-700 cursor-not-allowed opacity-70'
-                    : 'bg-gradient-to-r from-blue-600 via-indigo-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 shadow-blue-500/25 active:scale-[0.98]'
+                    ? 'opacity-40 cursor-not-allowed'
+                    : 'hover:shadow-white/20'
                 }`}
               >
                 {isLoading ? (
                   <>
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    <div className="w-4 h-4 border-2 border-neutral-950 border-t-transparent rounded-full animate-spin" />
                     <span>{t.btn_verifying}</span>
                   </>
                 ) : (
                   <>
-                    <Search className="w-4 h-4" />
                     <span>{t.btn_verify}</span>
+                    <ArrowRight className="w-4 h-4" />
                   </>
                 )}
               </button>
             </div>
           </div>
         </form>
+      </div>
+
+      {/* "SCROLL TO EXPLORE" Indicator (Directly replicating the bottom indicator in reference) */}
+      <div className="mt-8 flex flex-col items-center justify-center">
+        <button
+          type="button"
+          onClick={() => {
+            const nextElem =
+              document.getElementById('section-demos') ||
+              document.getElementById('section-methodology');
+            nextElem?.scrollIntoView({ behavior: 'smooth' });
+          }}
+          className="group flex items-center gap-2.5 px-4 py-2 rounded-full text-xs font-bold tracking-widest uppercase text-white/50 hover:text-white transition-all focus:outline-none"
+        >
+          <span>SCROLL TO EXPLORE</span>
+          {/* Animated circular indicator matching reference */}
+          <div className="w-5 h-5 rounded-full border border-white/40 group-hover:border-white flex items-center justify-center relative">
+            <div className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+            <svg
+              className="absolute inset-0 w-full h-full -rotate-90 animate-spin-slow opacity-60"
+              viewBox="0 0 24 24"
+            >
+              <circle
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                strokeWidth="2"
+                fill="none"
+                strokeDasharray="20 40"
+              />
+            </svg>
+          </div>
+        </button>
       </div>
     </div>
   );

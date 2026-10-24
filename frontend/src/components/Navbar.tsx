@@ -1,5 +1,5 @@
 import React from 'react';
-import { Shield, Sun, Moon, History, BookOpen, Settings, Globe } from 'lucide-react';
+import { Shield, Sun, Moon, History, BookOpen, Settings, Globe, Sparkles } from 'lucide-react';
 import { Language, translations } from '../i18n';
 
 interface NavbarProps {
@@ -26,71 +26,64 @@ export const Navbar: React.FC<NavbarProps> = ({
   const t = translations[lang];
 
   return (
-    <header className="sticky top-0 z-40 w-full border-b border-slate-200 dark:border-slate-800 bg-white/90 dark:bg-navy-950/90 backdrop-blur-md transition-colors duration-200">
+    <header className="sticky top-0 z-40 w-full border-b border-white/10 bg-neutral-950/70 backdrop-blur-xl text-white transition-colors duration-200 select-none">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-        {/* Brand */}
+        {/* Brand with BETA badge (Replicating "Wegic BETA" in reference) */}
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-700 via-indigo-600 to-cyan-500 p-0.5 shadow-md flex items-center justify-center">
-            <div className="w-full h-full bg-slate-900 rounded-[10px] flex items-center justify-center">
-              <Shield className="w-5 h-5 text-cyan-400" />
-            </div>
+          <div className="w-9 h-9 rounded-xl bg-white/10 border border-white/20 flex items-center justify-center shadow-lg">
+            <Shield className="w-5 h-5 text-white" />
           </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="font-extrabold text-xl tracking-tight text-slate-900 dark:text-white">
-                {t.brand}
-              </span>
-              <span className="text-[10px] font-mono tracking-wider uppercase px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
-                v1.0 Live
-              </span>
-            </div>
-            <p className="text-xs text-slate-500 dark:text-slate-400 hidden sm:block">
-              {t.tagline}
-            </p>
+          <div className="flex items-center gap-2">
+            <span className="font-extrabold text-xl tracking-tight text-white">
+              {t.brand}
+            </span>
+            <span className="text-[10px] font-bold font-mono tracking-wider uppercase px-2 py-0.5 rounded-full bg-white/10 text-white/90 border border-white/20">
+              BETA
+            </span>
           </div>
         </div>
 
-        {/* Right actions */}
+        {/* Right actions (Replicating "Build your site" pill button + utility icons) */}
         <div className="flex items-center gap-2 sm:gap-3">
-          {/* Language Switch */}
-          <button
-            onClick={() => setLang(lang === 'en' ? 'hi' : 'en')}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 transition-colors"
-            title="Switch Language / भाषा बदलें"
-          >
-            <Globe className="w-3.5 h-3.5 text-blue-500" />
-            <span>{lang === 'en' ? 'हिंदी' : 'English'}</span>
-          </button>
-
-          {/* Methodology Modal Trigger */}
+          {/* Methodology Trigger */}
           <button
             onClick={onOpenMethodology}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 transition-colors"
+            className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium text-white/70 hover:text-white hover:bg-white/10 transition-colors"
             title="Fact-Checking Standards & Ethics"
           >
-            <BookOpen className="w-3.5 h-3.5 text-indigo-500" />
-            <span className="hidden md:inline">{t.nav_methodology}</span>
+            <BookOpen className="w-3.5 h-3.5" />
+            <span>{t.nav_methodology}</span>
           </button>
 
           {/* History Drawer Trigger */}
           <button
             onClick={onOpenHistory}
-            className="relative flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 transition-colors"
+            className="relative flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium text-white/70 hover:text-white hover:bg-white/10 transition-colors"
             title="Past Verifications"
           >
-            <History className="w-3.5 h-3.5 text-cyan-500" />
+            <History className="w-3.5 h-3.5" />
             <span className="hidden sm:inline">{t.nav_history}</span>
             {historyCount > 0 && (
-              <span className="inline-flex items-center justify-center px-1.5 py-0.2 text-[10px] font-bold rounded-full bg-blue-600 text-white">
+              <span className="inline-flex items-center justify-center px-1.5 py-0.2 text-[10px] font-bold rounded-full bg-white text-neutral-950">
                 {historyCount}
               </span>
             )}
           </button>
 
+          {/* Language Switch */}
+          <button
+            onClick={() => setLang(lang === 'en' ? 'hi' : 'en')}
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-medium text-white/70 hover:text-white hover:bg-white/10 transition-colors"
+            title="Switch Language / भाषा बदलें"
+          >
+            <Globe className="w-3.5 h-3.5" />
+            <span>{lang === 'en' ? 'हिंदी' : 'English'}</span>
+          </button>
+
           {/* Settings Trigger */}
           <button
             onClick={onOpenSettings}
-            className="p-2 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 transition-colors"
+            className="p-2 rounded-full text-white/70 hover:text-white hover:bg-white/10 transition-colors"
             title="Settings & API Configuration"
           >
             <Settings className="w-4 h-4" />
@@ -99,11 +92,26 @@ export const Navbar: React.FC<NavbarProps> = ({
           {/* Theme Toggle */}
           <button
             onClick={() => setIsDark(!isDark)}
-            className="p-2 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 transition-colors"
+            className="p-2 rounded-full text-white/70 hover:text-white hover:bg-white/10 transition-colors"
             title={isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
             aria-label="Toggle Theme"
           >
-            {isDark ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-indigo-600" />}
+            {isDark ? <Sun className="w-4 h-4 text-amber-300" /> : <Moon className="w-4 h-4 text-cyan-300" />}
+          </button>
+
+          {/* Primary High-Contrast Pill CTA Button (Replicating "Build your site" in reference) */}
+          <button
+            onClick={() => {
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+              const inputEl = document.querySelector('textarea, input[type="url"]') as HTMLElement;
+              inputEl?.focus();
+            }}
+            className="flex items-center gap-2 px-4 sm:px-5 py-2 rounded-full font-bold text-xs sm:text-sm bg-white text-neutral-950 hover:bg-slate-100 transition-all duration-200 shadow-lg active:scale-95 ml-1"
+          >
+            <div className="w-5 h-5 rounded-full bg-neutral-950 text-white flex items-center justify-center text-[11px] font-bold">
+              T
+            </div>
+            <span>{lang === 'en' ? 'Verify News' : 'तथ्य-जांच'}</span>
           </button>
         </div>
       </div>

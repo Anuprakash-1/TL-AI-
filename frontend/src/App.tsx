@@ -181,7 +181,7 @@ export function App() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-50/75 dark:bg-navy-950/80 text-slate-900 dark:text-slate-100 transition-colors duration-200 font-sans relative overflow-x-hidden">
+    <div className="min-h-screen flex flex-col bg-transparent text-slate-900 dark:text-slate-100 transition-colors duration-200 font-sans relative overflow-x-hidden">
       {/* Dynamic Animated Ambient & Neural Constellation Background */}
       <AnimatedBackground isDark={isDark} />
       {/* Navbar */}
@@ -247,23 +247,6 @@ export function App() {
                 submittedText={lastPayload?.text || lastPayload?.url || ''}
                 isComplete={isFinishing}
               />
-            </div>
-          )}
-
-          {/* Subtle Layer Glide Prompt on Homepage */}
-          {!currentReport && !isLoading && (
-            <div className="mt-6 sm:mt-10 flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 text-xs">
-              <button
-                type="button"
-                onClick={() => document.getElementById('section-demos')?.scrollIntoView({ behavior: 'smooth' })}
-                className="group flex flex-col items-center gap-1.5 hover:text-cyan-500 dark:hover:text-cyan-400 transition-colors focus:outline-none"
-                aria-label="Scroll to case studies"
-              >
-                <span className="font-medium tracking-wide">
-                  {lang === 'en' ? 'Explore Verified Cases & Methodology' : '???????? ??? ? ???????????? ?????'}
-                </span>
-                <ChevronDown className="w-4 h-4 animate-bounce" />
-              </button>
             </div>
           )}
         </section>
