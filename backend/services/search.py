@@ -9,49 +9,138 @@ from ddgs import DDGS
 from config import USER_AGENT, REQUEST_TIMEOUT_SECONDS
 
 KNOWN_PRIMARY_DOMAINS = {
+    # Official Government & Constitutional
     "pib.gov.in": ("Press Information Bureau (Government of India)", "GOVERNMENT_PRIMARY"),
     "eci.gov.in": ("Election Commission of India", "CONSTITUTIONAL_PRIMARY"),
     "sci.gov.in": ("Supreme Court of India", "JUDICIAL_PRIMARY"),
     "who.int": ("World Health Organization", "INTERNATIONAL_HEALTH_AUTHORITY"),
+    "un.org": ("United Nations", "INTERNATIONAL_HEALTH_AUTHORITY"),
+    "unesco.org": ("UNESCO Official", "GOVERNMENT_PRIMARY"),
+    "worldbank.org": ("World Bank Official", "GOVERNMENT_PRIMARY"),
+    "isro.gov.in": ("ISRO Official", "GOVERNMENT_PRIMARY"),
+    "nasa.gov": ("NASA Official", "GOVERNMENT_PRIMARY"),
+    "rbi.org.in": ("Reserve Bank of India", "GOVERNMENT_PRIMARY"),
+    "newsonair.gov.in": ("Prasar Bharati / All India Radio", "GOVERNMENT_PRIMARY"),
+
+    # Global News Wires
     "reuters.com": ("Reuters International News Agency", "GLOBAL_NEWS_WIRE"),
     "apnews.com": ("Associated Press", "GLOBAL_NEWS_WIRE"),
+    "afp.com": ("AFP News Agency", "GLOBAL_NEWS_WIRE"),
+    "aninews.in": ("Asian News International (ANI)", "GLOBAL_NEWS_WIRE"),
+    "ptinews.com": ("Press Trust of India (PTI)", "GLOBAL_NEWS_WIRE"),
+
+    # Certified & Independent Fact Checkers (IFCN signatories & recognized)
     "factcheck.afp.com": ("AFP Fact Check (IFCN Signatory)", "CERTIFIED_FACT_CHECKER"),
     "boomlive.in": ("BOOM Live (IFCN Signatory)", "CERTIFIED_FACT_CHECKER"),
     "altnews.in": ("Alt News (Independent Fact Check)", "CERTIFIED_FACT_CHECKER"),
     "snopes.com": ("Snopes Fact Checking", "CERTIFIED_FACT_CHECKER"),
+    "factly.in": ("FACTLY (IFCN Signatory)", "CERTIFIED_FACT_CHECKER"),
+    "vishvasnews.com": ("Vishvas News (IFCN Signatory)", "CERTIFIED_FACT_CHECKER"),
+    "newsmeter.in": ("NewsMeter Fact Check (IFCN Signatory)", "CERTIFIED_FACT_CHECKER"),
+    "thequint.com": ("The Quint Fact Check", "CERTIFIED_FACT_CHECKER"),
+    "newschecker.in": ("Newschecker (IFCN Signatory)", "CERTIFIED_FACT_CHECKER"),
+    "thip.media": ("The Healthy Indian Project (IFCN)", "CERTIFIED_FACT_CHECKER"),
+    "factcrescendo.com": ("Fact Crescendo (IFCN Signatory)", "CERTIFIED_FACT_CHECKER"),
+    "thelogicalindian.com": ("The Logical Indian Fact Check", "CERTIFIED_FACT_CHECKER"),
+
+    # Established News Organizations
     "thehindu.com": ("The Hindu", "ESTABLISHED_NEWS_ORGANIZATION"),
     "indianexpress.com": ("The Indian Express", "ESTABLISHED_NEWS_ORGANIZATION"),
-    "bbc.com": ("BBC News", "ESTABLISHED_NEWS_ORGANIZATION"),
+    "timesofindia.indiatimes.com": ("The Times of India", "ESTABLISHED_NEWS_ORGANIZATION"),
+    "indiatimes.com": ("The Times of India", "ESTABLISHED_NEWS_ORGANIZATION"),
+    "indiatoday.in": ("India Today", "ESTABLISHED_NEWS_ORGANIZATION"),
+    "hindustantimes.com": ("Hindustan Times", "ESTABLISHED_NEWS_ORGANIZATION"),
     "ndtv.com": ("NDTV", "ESTABLISHED_NEWS_ORGANIZATION"),
+    "bbc.com": ("BBC News", "ESTABLISHED_NEWS_ORGANIZATION"),
+    "bbc.co.uk": ("BBC News", "ESTABLISHED_NEWS_ORGANIZATION"),
+    "amarujala.com": ("Amar Ujala", "ESTABLISHED_NEWS_ORGANIZATION"),
+    "dainikbhaskar.com": ("Dainik Bhaskar", "ESTABLISHED_NEWS_ORGANIZATION"),
+    "jagran.com": ("Dainik Jagran", "ESTABLISHED_NEWS_ORGANIZATION"),
+    "livemint.com": ("Mint", "ESTABLISHED_NEWS_ORGANIZATION"),
+    "economictimes.indiatimes.com": ("The Economic Times", "ESTABLISHED_NEWS_ORGANIZATION"),
+    "deccanherald.com": ("Deccan Herald", "ESTABLISHED_NEWS_ORGANIZATION"),
+    "theprint.in": ("ThePrint", "ESTABLISHED_NEWS_ORGANIZATION"),
+    "thewire.in": ("The Wire", "ESTABLISHED_NEWS_ORGANIZATION"),
+    "scroll.in": ("Scroll.in", "ESTABLISHED_NEWS_ORGANIZATION"),
 }
 
-def identify_publisher_and_authority(url: str, title: str) -> tuple[str, str]:
-    """Identifies publisher name and authority classification based on domain."""
+STOP_WORDS = {
+    'has', 'have', 'had', 'is', 'was', 'are', 'were', 'been', 'being',
+    'the', 'a', 'an', 'in', 'on', 'at', 'by', 'for', 'with', 'about',
+    'against', 'between', 'into', 'through', 'during', 'before', 'after',
+    'above', 'below', 'to', 'from', 'up', 'down', 'of', 'off', 'over',
+    'under', 'again', 'further', 'then', 'once', 'here', 'there', 'when',
+    'where', 'why', 'how', 'all', 'any', 'both', 'each', 'few', 'more',
+    'most', 'other', 'some', 'such', 'only', 'own', 'same', 'so',
+    'than', 'too', 'very', 'can', 'will', 'just', 'should', 'now',
+    'officially', 'recently', 'this', 'that', 'these', 'those', 'as',
+    'their', 'its', 'our', 'my', 'your', 'his', 'her'
+}
+
+def identify_publisher_and_authority(url: str, title: str, source_name: str = "") -> tuple[str, str]:
+    """Identifies publisher name and authority classification based on domain, source name, and title."""
     try:
         domain = urllib.parse.urlparse(url).netloc.lower()
         domain = domain.replace("www.", "")
-        
+
+        pub_lower = (source_name or "").lower()
+        title_lower = (title or "").lower()
+
+        # 1. Fact-checking signals in publisher name or title
+        fact_check_keywords = [
+            "fact check", "fact-check", "factcheck", "fake alert", "boom live", "boom",
+            "alt news", "snopes", "factly", "vishvas news", "newsmeter", "newschecker",
+            "fact crescendo", "पड़ताल", "तथ्य जांच", "सच क्या है", "fake check"
+        ]
+        if any(fc in pub_lower or fc in title_lower for fc in fact_check_keywords):
+            pub_title = source_name or "Fact-Checking Organization"
+            return pub_title, "CERTIFIED_FACT_CHECKER"
+
+        # 2. Known domains lookup
         for known_domain, (pub_name, auth_type) in KNOWN_PRIMARY_DOMAINS.items():
             if known_domain in domain:
-                return pub_name, auth_type
+                return source_name or pub_name, auth_type
 
-        # Check for government domains
-        if domain.endswith(".gov.in") or domain.endswith(".nic.in") or domain.endswith(".gov"):
-            return domain.upper(), "GOVERNMENT_PRIMARY"
-        
-        # Check title endings (e.g. "... - Reuters" or "... | The Hindu")
+        # 3. Check for government domains
+        if domain.endswith(".gov.in") or domain.endswith(".nic.in") or domain.endswith(".gov") or domain.endswith(".mil"):
+            return source_name or domain.upper(), "GOVERNMENT_PRIMARY"
+
+        # 4. Institutional & official agencies
+        gov_inst_keywords = [
+            "pib", "press information bureau", "news on air", "prasar bharati",
+            "who", "isro", "nasa", "rbi", "supreme court", "election commission",
+            "unesco", "world bank"
+        ]
+        if any(g in pub_lower for g in gov_inst_keywords):
+            return source_name or "Official Institutional Body", "GOVERNMENT_PRIMARY"
+
+        # 5. Major established news organizations
+        established_news_keywords = [
+            "times of india", "india today", "hindu", "indian express", "hindustan times",
+            "bbc", "ndtv", "reuters", "associated press", "ani", "pti", "jagran",
+            "bhaskar", "amar ujala", "mint", "economic times", "deccan herald"
+        ]
+        if any(nw in pub_lower for nw in established_news_keywords):
+            return source_name, "ESTABLISHED_NEWS_ORGANIZATION"
+
+        # 6. Check title endings (e.g. "... - Reuters" or "... | The Hindu")
         for sep in [" - ", " | ", " — "]:
             if sep in title:
                 parts = title.split(sep)
                 candidate_publisher = parts[-1].strip()
                 if 2 < len(candidate_publisher) < 35:
+                    cand_lower = candidate_publisher.lower()
+                    if any(fc in cand_lower for fc in fact_check_keywords):
+                        return candidate_publisher, "CERTIFIED_FACT_CHECKER"
+                    if any(nw in cand_lower for nw in established_news_keywords):
+                        return candidate_publisher, "ESTABLISHED_NEWS_ORGANIZATION"
                     return candidate_publisher, "SECONDARY_NEWS_OUTLET"
-                    
-        return domain, "SECONDARY_SOURCE"
-    except Exception:
-        return "Web Source", "SECONDARY_SOURCE"
 
-def search_ddgs(query: str, max_results: int = 5) -> List[Dict[str, Any]]:
+        return source_name or domain or "Web Source", "SECONDARY_SOURCE"
+    except Exception:
+        return source_name or "Web Source", "SECONDARY_SOURCE"
+
+def search_ddgs(query: str, max_results: int = 4) -> List[Dict[str, Any]]:
     """Executes live web search using DDGS with strict timeout."""
     results = []
     try:
@@ -107,15 +196,10 @@ def search_google_news_rss(query: str, language: str = "en", country: str = "IN"
                     link = link_elem.text if link_elem is not None else ""
                     pub_date = pub_date_elem.text if pub_date_elem is not None else None
                     desc_html = desc_elem.text if desc_elem is not None else ""
-                    
-                    # Clean html tags from description snippet
+
                     snippet = re.sub(r"<[^>]+>", " ", desc_html).strip() if desc_html else ""
-                    
-                    publisher = source_elem.text if source_elem is not None else ""
-                    if not publisher:
-                        publisher, auth_type = identify_publisher_and_authority(link, title)
-                    else:
-                        _, auth_type = identify_publisher_and_authority(link, title)
+                    raw_source = source_elem.text if source_elem is not None else ""
+                    publisher, auth_type = identify_publisher_and_authority(link, title, raw_source)
 
                     if title and link:
                         results.append({
@@ -148,7 +232,6 @@ def search_wikipedia(query: str, language: str = "en") -> List[Dict[str, Any]]:
                 data = resp.json()
                 if len(data) >= 2 and data[1]:
                     for title_match in data[1][:2]:
-                        # 2. Query REST summary API to get full verified lead paragraph
                         summary_url = f"https://{lang_code}.wikipedia.org/api/rest_v1/page/summary/{urllib.parse.quote(title_match)}"
                         s_resp = client.get(summary_url, headers=headers)
                         excerpt = ""
@@ -157,7 +240,7 @@ def search_wikipedia(query: str, language: str = "en") -> List[Dict[str, Any]]:
                             s_data = s_resp.json()
                             excerpt = s_data.get("extract", "")
                             page_url = s_data.get("content_urls", {}).get("desktop", {}).get("page", page_url)
-                        
+
                         if not excerpt and len(data) >= 3 and data[2]:
                             excerpt = data[2][0]
 
@@ -183,94 +266,67 @@ def search_web_multi_angle(
     """
     Executes a comprehensive multi-angle real web search concurrently for a factual claim.
     Formulates queries for:
-    1. Exact / direct claim phrasing.
-    2. Fact-check specific query ("claim + fact check / debunked / official").
-    3. Official agency query (e.g. PIB / WHO / Court / Commission).
-    4. Regional / Hindi query when applicable.
-    
-    Returns:
-    {
-      "sources": List[Dict],
-      "queries_executed": List[str],
-      "live_search_available": bool,
-      "source_types_found": List[str]
-    }
+    1. Fact-check specific query ("claim keywords + fact check / फैक्ट चेक") to detect debunks.
+    2. Direct core keywords query to gather affirmative reporting.
+    3. Official authority / entity query.
     """
     entities = entities or []
     queries = []
-    
-    # 1. Direct keywords
-    claim_clean = re.sub(r"[^\w\s\u0900-\u097F]", "", claim_text).strip()
+
+    # Clean words and extract meaningful terms
+    claim_clean = re.sub(r"[^\w\s\u0900-\u097F]", " ", claim_text).strip()
     words = claim_clean.split()
-    short_claim = " ".join(words[:10])
-    
-    # Check if the claim contains explicit viral/hoax indicators or question words
-    viral_markers = [
-        "whatsapp", "forward", "viral", "miracle", "secret", "banned", "50000",
-        "free recharge", "gps chip", "nano chip", "apocalypse", "daawa", "दावा", "वायरल", "फर्जी",
-        "hoax", "rumor", "rumour", "exposed", "scam alert", "shocking"
-    ]
+
+    # Question stopwords to exclude
     question_words = {
         "kaun", "kisne", "kya", "kab", "kaha", "kahan", "kyun", "kaise",
         "who", "what", "where", "when", "why", "how", "is", "are", "kon",
         "कौन", "किसने", "क्या", "कब", "कहाँ", "क्यों", "कैसे"
     }
-    
-    is_viral_claim = any(m in claim_clean.lower() for m in viral_markers)
-    has_question_word = any(w.lower() in question_words for w in words)
 
-    # Clean content terms (stripping question stopwords for search accuracy)
-    content_words = [w for w in words if w.lower() not in question_words]
-    content_query = " ".join(content_words[:8]) if content_words else short_claim
+    meaningful_words = [w for w in words if w.lower() not in STOP_WORDS and w.lower() not in question_words]
+    key_phrase = " ".join(meaningful_words[:5]) if meaningful_words else " ".join(words[:5])
 
-    # Query 1: Direct claim or content keywords
-    queries.append(short_claim)
-    if content_query and content_query != short_claim:
-        queries.append(content_query)
-    
-    # Query 2: Contextual query (News wire vs Fact-check)
-    if is_viral_claim or has_question_word:
-        if language == "hi":
-            queries.append(f"{content_query} फैक्ट चेक")
-        else:
-            queries.append(f"{content_query} fact check")
+    # Angle 1: Always include Fact-Check query to detect hoaxes, scams, and debunks
+    if language == "hi":
+        queries.append(f"{key_phrase} फैक्ट चेक")
     else:
-        # For standard news, search for authoritative reporting rather than skewing toward debunks
-        if language == "hi":
-            queries.append(f"{content_query} समाचार")
-        else:
-            queries.append(f"{content_query} news")
+        queries.append(f"{key_phrase} fact check")
 
-    # Query 3: Entity + official verification (targeted)
+    # Angle 2: Direct core keywords query
+    queries.append(key_phrase)
+
+    # Angle 3: Entity or institutional verification query
     lower_claim = claim_clean.lower()
     if any(w in lower_claim for w in ["who", "health organization", "mpox", "covid", "vaccine"]):
-        queries.append(f"{content_query} WHO official statement")
+        queries.append(f"{key_phrase} WHO official")
     elif any(w in lower_claim for w in ["isro", "chandrayaan", "space", "satellite", "gaganyaan"]):
-        queries.append(f"{content_query} ISRO official")
-    elif any(w in lower_claim for w in ["nasa", "solar", "eclipse", "space weather"]):
-        queries.append(f"{content_query} NASA official")
-    elif country == "IN":
-        if any(w in lower_claim for w in ["rbi", "repo rate", "currency", "bank", "2000 note", "reserve bank"]):
-            queries.append(f"{content_query} RBI official notification")
-        elif any(w in lower_claim for w in ["scheme", "yojana", "yojna", "subsidy", "pension"]):
-            queries.append(f"{content_query} PIB official")
-        elif any(w in lower_claim for w in ["supreme court", "high court", "bail", "verdict", "judge", "cji"]):
-            queries.append(f"{content_query} Supreme Court of India verdict")
-        elif any(w in lower_claim for w in ["election", "evm", "vote", "voter"]):
-            queries.append(f"{content_query} Election Commission of India official")
+        queries.append(f"{key_phrase} ISRO official")
+    elif any(w in lower_claim for w in ["unesco"]):
+        queries.append(f"{key_phrase} UNESCO official")
+    elif any(w in lower_claim for w in ["world bank", "gdp"]):
+        queries.append(f"{key_phrase} World Bank report")
+    elif any(w in lower_claim for w in ["rbi", "repo rate", "currency", "bank", "2000 note", "reserve bank"]):
+        queries.append(f"{key_phrase} RBI official notification")
+    elif any(w in lower_claim for w in ["scheme", "yojana", "yojna", "subsidy", "pension", "recharge", "free"]):
+        queries.append(f"{key_phrase} PIB official")
+    elif any(w in lower_claim for w in ["supreme court", "high court", "bail", "verdict", "judge", "cji"]):
+        queries.append(f"{key_phrase} Supreme Court of India verdict")
+    elif any(w in lower_claim for w in ["election", "evm", "vote", "voter"]):
+        queries.append(f"{key_phrase} Election Commission of India official")
+    elif len(meaningful_words) > 2:
+        queries.append(" ".join(meaningful_words[:3]))
 
-    # Deduplicate queries
+    # Deduplicate queries (max 3)
     unique_queries = list(dict.fromkeys(queries))[:3]
-    
+
     # Target entities for encyclopedic Wikipedia reference
     wiki_targets = []
     if entities:
-        # Filter out numbers, currency amounts, and generic short words
         for ent in entities:
             if not re.search(r"^(?:₹|\$|\d|in\b|the\b)", ent, re.IGNORECASE) and len(ent) >= 3:
                 wiki_targets.append(ent)
-    
-    # Check for constitutional or government office in claim
+
     lower_c = claim_clean.lower()
     if "prime minister" in lower_c or "pm of india" in lower_c:
         wiki_targets.append("Prime Minister of India")
@@ -280,7 +336,7 @@ def search_web_multi_angle(
         wiki_targets.append("Supreme Court of India")
     if "isro" in lower_c or "chandrayaan" in lower_c:
         wiki_targets.append("ISRO")
-    if "rbi" in lower_c or "reserve bank" in lower_c or "repo rate" in lower_c:
+    if "rbi" in lower_c or "reserve bank" in lower_c:
         wiki_targets.append("Reserve Bank of India")
 
     deduped_wiki_targets = list(dict.fromkeys(wiki_targets))[:2]
@@ -289,14 +345,13 @@ def search_web_multi_angle(
     queries_run = []
     search_success = False
 
-    # Execute all searches concurrently using ThreadPoolExecutor for 4x-5x speedup
     total_workers = len(unique_queries) * 2 + len(deduped_wiki_targets) + 1
     with concurrent.futures.ThreadPoolExecutor(max_workers=min(10, max(2, total_workers))) as executor:
         futures = []
 
         for q in unique_queries:
             queries_run.append(q)
-            futures.append(executor.submit(search_google_news_rss, q, language, country, 3))
+            futures.append(executor.submit(search_google_news_rss, q, language, country, 4))
             futures.append(executor.submit(search_ddgs, q, 3))
 
         for target in deduped_wiki_targets:
@@ -311,18 +366,29 @@ def search_web_multi_angle(
             except Exception as e:
                 print(f"[Search-Worker] Handled exception: {e}")
 
+    # Prioritize CERTIFIED_FACT_CHECKER and GOVERNMENT_PRIMARY sources first
+    priority_order = {
+        "CERTIFIED_FACT_CHECKER": 0,
+        "GOVERNMENT_PRIMARY": 1,
+        "CONSTITUTIONAL_PRIMARY": 2,
+        "INTERNATIONAL_HEALTH_AUTHORITY": 3,
+        "GLOBAL_NEWS_WIRE": 4,
+        "ESTABLISHED_NEWS_ORGANIZATION": 5,
+        "PRIMARY_REFERENCE": 6,
+        "SECONDARY_NEWS_OUTLET": 7,
+        "SECONDARY_SOURCE": 8
+    }
+
     # Deduplicate sources by URL
     seen_urls = set()
     deduped_sources = []
-    for item in all_collected_sources:
+    for item in sorted(all_collected_sources, key=lambda s: priority_order.get(s.get("authority_type"), 9)):
         raw_url = item.get("url", "")
-        # Normalize URL to prevent minor query param duplicates
         norm_url = raw_url.split("?")[0] if "?" in raw_url and "google.com/rss" not in raw_url else raw_url
         if norm_url and norm_url not in seen_urls:
             seen_urls.add(norm_url)
             deduped_sources.append(item)
 
-    # Identify source types consulted
     source_types = list(set(s.get("authority_type", "SECONDARY_SOURCE") for s in deduped_sources))
 
     return {

@@ -49,16 +49,46 @@ def check_targeted_refutation(claim_text: str, src_title: str, src_excerpt: str)
     # Strip out benign phrases where 'false' is not a debunk of the claim
     filtered_text = re.sub(r"\bfalse\s+(?:diagnos\w*|positiv\w*|negativ\w*|alarm\w*|promis\w*|pretext\w*|start\w*|confession\w*)\b", "", text)
 
-    # Targeted refutation patterns targeting the claim, rumour, or assertion
+    # 1. Obvious Fact-Check / Fake-Alert badges in Title or Excerpt
+    factcheck_badges = [
+        r"\bfake\s*alert\b",
+        r"\bmyth\s*(?:busted|buster)\b",
+        r"\b(?:hoax|debunked|debunking|debunk|debunks|fictitious|scam\s*alert)\b",
+        r"\b(?:फेक\s*अलर्ट|तथ्य\s*जांच|पड़ताल|दावा\s*फर्जी|दावा\s*झूठा|दावा\s*गलत|अफवाह|भ्रामक)\b",
+        r"\bgovt\s+debunks?\b",
+        r"\b(?:falls?|fell)\s+for\s+.*?\bhoax\b",
+        r"\bnot\s+declared\b",
+        r"\bnot\s+announced\b",
+        r"\bnot\s+ranked\b",
+        r"\bnot\s+true\b",
+        r"\bno\s+such\b",
+        r"\bno,\s+it[\'’]s\s+a\s+scam\b",
+        r"\bno,\s+the\s+.*?\b(?:scam|fake|hoax|untrue)\b",
+        r"\bno,\s+[\w\s]{1,30}\s+(?:did\s*not|does\s*not|is\s*not|was\s*not|has\s*not|isn[\'’]t)\b",
+    ]
+    if any(re.search(pat, filtered_text) for pat in factcheck_badges):
+        return True
+
+    # 2. Fact Check title + refutation signal anywhere in title or excerpt
+    has_fc_prefix = bool(re.search(r"\b(?:fact[\s\-]check|factcheck|पड़ताल|सच\s*क्या\s*है)\b", filtered_text))
+    fc_signals = [
+        r"\b(?:false|fake|hoax|scam|fraud|misleading|bogus|untrue|fabricated|morphed|doctored|baseless|unfounded|myth)\b",
+        r"\b(?:did\s*not|was\s*not|is\s*not|does\s*not|has\s*not|have\s*not|never|isn[\'’]t)\b",
+        r"\b(?:no\s+such|no\s+evidence|no\s+record|no\s+announcement|no\s+order)\b",
+        r"\bno,\s+",
+        r"\b(?:गलत|फर्जी|झूठ|निराधार|भ्रामक)\b",
+    ]
+    if has_fc_prefix and any(re.search(sig, filtered_text) for sig in fc_signals):
+        return True
+
+    # 3. Targeted refutation patterns targeting the claim, rumour, or assertion
     refutation_patterns = [
         r"\b(?:claim|rumor|rumour|post|forward|message|video|news|report)\b.*?\b(?:is|was|are|were)?\s*(?:false|fake|baseless|untrue|fabricated|bogus|unfounded|completely fictitious|myth)\b",
-        r"\b(?:fact[\s\-]check\s*:\s*(?:false|fake|debunked|hoax|misleading|partly false))\b",
-        r"\b(?:won[’\']?t|will\s*not|does\s*not|do\s*not|cannot|did\s*not|never)\s+(?:have|contain|carry|feature|include|track)\b",
+        r"\b(?:won[’\']?t|will\s*not|does\s*not|do\s*not|cannot|did\s*not|has\s*not|was\s*not|were\s*not|never|isn[’\']?t|aren[’\']?t)\s+(?:have|contain|carry|feature|include|track|declare|announce|give|rank|distribute|offer|award|order|launch|pay|send)\b",
         r"\bno\s+(?:[\w\-]+\s+){0,3}(?:chip|tracker|transmitter|satellite\s*track\w*)\b",
-        r"\bno\s+(?:evidence|truth|basis|microchip|nano\s*chip|such\s*(?:order|scheme|rule|announcement|notification|plan))\b",
-        r"\b(?:debunked|fictitious|scam\s*alert|myth\s*busted)\b",
+        r"\bno\s+(?:evidence|truth|basis|microchip|nano\s*chip|such\s*(?:order|scheme|rule|announcement|notification|plan|award|ranking|recharge|prize))\b",
         r"\b(?:denied|denies|dismisses|refutes|dismissed|refuted|clarified|rejected)\s+.*?\b(?:claims?|reports?|rumors?|rumours?|allegations?)\b",
-        r"(?:दावा\s*(?:गलत|फर्जी|झूठा|निराधार)|का\s*खंडन|तथ्यहीन|फेक\s*न्यूज|फेक\s*मैसेज|कोई\s*चिप\s*नहीं)"
+        r"(?:दावा\s*(?:गलत|फर्जी|झूठा|निराधार|भ्रामक)|का\s*खंडन|तथ्यहीन|फेक\s*न्यूज|फेक\s*मैसेज|कोई\s*चिप\s*नहीं|कोई\s*घोषणा\s*नहीं)"
     ]
 
     return any(re.search(p, filtered_text) for p in refutation_patterns)
@@ -184,6 +214,16 @@ def check_corroboration(
     if check_targeted_refutation(claim_text, src_title, src_excerpt):
         return False, 0.0
 
+    full_text = (src_title + " " + src_excerpt).lower()
+    debunk_tokens = [
+        "fact check", "fact-check", "factcheck", "fake alert", "debunk", "hoax", "scam",
+        "not true", "not declared", "not announced", "not ranked", "myth",
+        "did not declare", "was not declared", "did not announce", "no such",
+        "पड़ताल", "फर्जी", "गलत दावा", "भ्रामक"
+    ]
+    if any(d in full_text for d in debunk_tokens):
+        return False, 0.0
+
     claim_tokens = normalize_text(claim_text)
     src_tokens = normalize_text(src_title + " " + src_excerpt)
 
@@ -225,8 +265,8 @@ def check_corroboration(
     # mention this feature cannot corroborate the claim.
     feature_markers = {
         "chip", "microchip", "nano", "gps", "tracker", "transmitter",
-        "secret", "radiation", "50000", "cure", "recharge", "satellite",
-        "gold", "sona", "चिप", "सोना"
+        "secret", "radiation", "50000", "5000", "cure", "recharge", "satellite",
+        "gold", "sona", "चिप", "सोना", "richest", "poorest", "banned"
     }
     critical_features = claim_tokens & feature_markers
     if critical_features and not (critical_features & src_tokens):
@@ -374,7 +414,7 @@ def extract_claims_heuristic(text: str, language: str = "en") -> List[Dict[str, 
     # Check for subjective/opinion markers
     opinion_patterns = [
         r"\bi think\b", r"\bin my opinion\b", r"\bi feel that\b", r"\bshould be\b",
-        r"\bthe best\b", r"\bthe worst\b", r"\bमेरा मानना है\b", r"\bमुझे लगता है\b"
+        r"\bमेरा मानना है\b", r"\bमुझे लगता है\b", r"\bमेरी राय में\b"
     ]
     is_opinion = any(re.search(pat, clean_text, re.IGNORECASE) for pat in opinion_patterns)
 
@@ -592,7 +632,7 @@ def evaluate_evidence_and_verdict(
     authoritative_types = (
         "CERTIFIED_FACT_CHECKER", "PRIMARY_REFERENCE", "GOVERNMENT_PRIMARY",
         "CONSTITUTIONAL_PRIMARY", "INTERNATIONAL_HEALTH_AUTHORITY",
-        "GLOBAL_NEWS_WIRE", "ESTABLISHED_NEWS_ORGANIZATION"
+        "GLOBAL_NEWS_WIRE", "ESTABLISHED_NEWS_ORGANIZATION", "SECONDARY_NEWS_OUTLET"
     )
 
     has_authoritative_contra = any(
@@ -602,16 +642,11 @@ def evaluate_evidence_and_verdict(
     )
 
     if contradicts_count >= 1 and supports_count == 0:
-        if has_authoritative_contra or contradicts_count >= 2:
-            verdict = "FALSE"
-            explanation = "Reliable evidence from established fact-checking organizations, official public records, or constitutional documentation directly contradicts the claim. Multiple independent evaluations found the assertion to be baseless, incorrect, or debunked."
-            uncertainties.append("Potential localized variations of the viral message may still circulate on messaging platforms.")
-        else:
-            verdict = "UNVERIFIED"
-            explanation = "Available evidence contains preliminary refutations but is insufficient to establish a definitive falsification across independent repositories."
-            uncertainties.append("Further primary records required for complete verification.")
-    elif contradicts_count >= 2 and supports_count == 1:
-        # Decisive contradiction from multiple sources; single support lacks primary authority
+        verdict = "FALSE"
+        explanation = "Reliable evidence from established fact-checking organizations, official public records, or constitutional documentation directly contradicts the claim. Independent investigation confirmed the assertion to be baseless, incorrect, or a circulating hoax."
+        uncertainties.append("Potential localized variations of the viral message may still circulate on messaging platforms.")
+    elif contradicts_count >= 1 and supports_count == 1:
+        # Decisive contradiction from certified fact checker overrides incidental single match
         if high_auth_supports == 0 or has_authoritative_contra:
             verdict = "FALSE"
             explanation = "Authoritative public records and independent reporting directly contradict the claim. Incidental token mentions in secondary sources do not substantiate the claim against clear refuting evidence."

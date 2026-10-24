@@ -130,3 +130,69 @@ def test_evaluate_evidence_decisive_false_on_overwhelming_contradictions():
     verdict, explanation, enriched, uncertainties, conf, cov = evaluate_evidence_and_verdict(claim, raw_sources)
     assert verdict == "FALSE"
     assert "contradicts" in explanation.lower() or "debunked" in explanation.lower()
+
+
+def test_unesco_national_anthem_debunk_classified_false():
+    # Debunk titles for UNESCO anthem must be recognized as CONTRADICTS and result in FALSE
+    claim = {
+        "claim_id": "claim-1",
+        "claim_text": "UNESCO has officially declared the Indian National Anthem Jana Gana Mana as the best in the world",
+        "entities": ["UNESCO", "Indian National Anthem", "Jana Gana Mana"],
+        "verifiability": "SPECIFIC_FACTUAL"
+    }
+    raw_sources = [
+        {
+            "title": "FAKE ALERT: No, UNESCO did not declare Indian national anthem 'best in the world'",
+            "excerpt": "A viral post claims UNESCO declared Indian anthem the best. UNESCO confirmed no such declaration was ever made.",
+            "publisher": "The Times of India",
+            "authority_type": "CERTIFIED_FACT_CHECKER",
+            "url": "https://timesofindia.indiatimes.com/1"
+        },
+        {
+            "title": "Fact Check: UNESCO does not rank national anthem of any country, viral claim is false",
+            "excerpt": "Vishvas News fact check proves the viral claim is completely fabricated. UNESCO has no such ranking.",
+            "publisher": "Vishvas News",
+            "authority_type": "CERTIFIED_FACT_CHECKER",
+            "url": "https://vishvasnews.com/1"
+        }
+    ]
+
+    verdict, explanation, enriched, uncertainties, conf, cov = evaluate_evidence_and_verdict(claim, raw_sources)
+    assert verdict == "FALSE"
+    assert all(s["evidence_relation"] == "CONTRADICTS" for s in enriched)
+
+def test_recharge_scam_debunk_classified_false():
+    # Modi govt free recharge scam must be recognized as CONTRADICTS
+    claim = {
+        "claim_id": "claim-1",
+        "claim_text": "Government announced free 5000 recharge for all students",
+        "entities": ["Government", "5000"],
+        "verifiability": "SPECIFIC_FACTUAL"
+    }
+    raw_sources = [
+        {
+            "title": "Fact Check: Modi govt announces Rs 5,000 reward? No, the Facebook ads are a scam",
+            "excerpt": "NewsMeter found the claim to be a phishing scam. PIB confirmed the government has launched no such scheme.",
+            "publisher": "NewsMeter",
+            "authority_type": "CERTIFIED_FACT_CHECKER",
+            "url": "https://newsmeter.in/1"
+        }
+    ]
+
+    verdict, explanation, enriched, uncertainties, conf, cov = evaluate_evidence_and_verdict(claim, raw_sources)
+    assert verdict == "FALSE"
+    assert enriched[0]["evidence_relation"] == "CONTRADICTS"
+
+def test_declarative_institutional_claim_not_opinion():
+    # Claims asserting that an organization declared something "best" are empirical events, not subjective opinions
+    claims = extract_claims_heuristic("UNESCO declared Indian national anthem as the best anthem in the world")
+    assert len(claims) >= 1
+    assert claims[0]["verifiability"] == "SPECIFIC_FACTUAL"
+    assert claims[0]["verifiability"] != "SUBJECTIVE_OPINION"
+
+def test_debunk_never_corroborates_claim():
+    # Even if a debunk title shares 90% of words with the claim, check_corroboration must return False
+    claim = "UNESCO declared Indian national anthem best in the world"
+    debunk_title = "FAKE ALERT: No, UNESCO did not declare Indian national anthem best in the world"
+    is_sup, _ = check_corroboration(claim, ["UNESCO", "Indian National Anthem"], debunk_title, "", "The Times of India", "ESTABLISHED_NEWS_ORGANIZATION")
+    assert is_sup is False
