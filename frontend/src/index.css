@@ -292,6 +292,65 @@
   animation: srtpFluidDrift 15s ease-in-out infinite;
 }
 
+
+/* =========================================================================
+   CYBER ALERT THEME - CRIMSON NEON HUD & CARBON WAVE KEYFRAMES
+   ========================================================================= */
+
+@keyframes cyberAlertPulse {
+  0%, 100% {
+    transform: scale(1);
+    filter: drop-shadow(0 0 25px rgba(239, 68, 68, 0.75)) drop-shadow(0 0 50px rgba(220, 38, 38, 0.45));
+  }
+  50% {
+    transform: scale(1.04);
+    filter: drop-shadow(0 0 40px rgba(239, 68, 68, 0.95)) drop-shadow(0 0 80px rgba(255, 43, 78, 0.65));
+  }
+}
+
+@keyframes hudRingSpin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes hudRingSpinReverse {
+  from {
+    transform: rotate(360deg);
+  }
+  to {
+    transform: rotate(0deg);
+  }
+}
+
+@keyframes crimsonWaveDrift {
+  0%, 100% {
+    transform: translateY(0px) scale(1);
+  }
+  50% {
+    transform: translateY(-12px) scale(1.02);
+  }
+}
+
+.animate-cyber-alert {
+  animation: cyberAlertPulse 3.5s ease-in-out infinite;
+}
+
+.animate-hud-spin {
+  animation: hudRingSpin 24s linear infinite;
+}
+
+.animate-hud-reverse {
+  animation: hudRingSpinReverse 16s linear infinite;
+}
+
+.animate-crimson-drift {
+  animation: crimsonWaveDrift 10s ease-in-out infinite;
+}
+
 /* Reduced Motion Accessibility Override */
 @media (prefers-reduced-motion: reduce) {
   .animate-radar-sweep,

@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowRight, CheckCircle2, XCircle, AlertTriangle } from 'lucide-react';
+import { ArrowRight, CheckCircle2, XCircle, AlertTriangle, ShieldAlert } from 'lucide-react';
 import { Language, translations } from '../i18n';
 
 interface DemoShowcaseProps {
@@ -74,9 +74,9 @@ export const DemoShowcase: React.FC<DemoShowcaseProps> = ({ onSelectDemo, lang }
       {/* Narrative Intro Section */}
       <div className="max-w-3xl mb-12 space-y-3">
         <h3 className="text-xl sm:text-2xl font-bold text-white flex items-center gap-2">
-          <span>Explore</span>
-          <span className="font-extrabold tracking-tight px-3 py-0.5 rounded-lg bg-gradient-to-r from-amber-400/20 to-emerald-400/20 text-white border border-emerald-500/30">
-            TruthLens Evidence
+          <span>Incident Database</span>
+          <span className="font-extrabold tracking-tight px-3 py-0.5 rounded-lg bg-red-950/40 text-red-400 border border-red-500/40 shadow-[0_0_12px_rgba(239,68,68,0.3)]">
+            Verified Threats
           </span>
         </h3>
         <p className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-white leading-tight">
@@ -91,22 +91,22 @@ export const DemoShowcase: React.FC<DemoShowcaseProps> = ({ onSelectDemo, lang }
         </p>
       </div>
 
-      {/* Headline with SRTP Amber/Teal Accents */}
+      {/* Headline with Cyber Alert Accents */}
       <div className="relative mb-8 flex items-end justify-between border-b border-white/10 pb-4">
         <div>
-          <span className="text-xs uppercase font-mono tracking-widest text-amber-400/90 font-bold block mb-1">
-            Featured Investigations
+          <span className="text-xs uppercase font-mono tracking-widest text-red-400 font-bold block mb-1">
+            Active Intelligence Reports
           </span>
           <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
             RECENT FACT-CHECKS
           </h2>
         </div>
-        <div className="text-xs font-mono font-bold text-teal-400/80 tracking-wider">
-          <span>4 VERIFIED CASES</span>
+        <div className="text-xs font-mono font-bold text-red-400/80 tracking-wider">
+          <span>4 INVESTIGATIONS LOGGED</span>
         </div>
       </div>
 
-      {/* Sleek Dark Obsidian Glass Cards */}
+      {/* Sleek Carbon Glass Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
         {demos.map((demo) => {
           const Icon = demo.icon;
@@ -114,19 +114,19 @@ export const DemoShowcase: React.FC<DemoShowcaseProps> = ({ onSelectDemo, lang }
             <div
               key={demo.id}
               onClick={() => onSelectDemo(demo.id)}
-              className="group cursor-pointer rounded-2xl bg-black/60 dark:bg-black/75 backdrop-blur-xl border border-white/10 hover:border-emerald-500/40 p-5 sm:p-6 transition-all duration-300 hover:shadow-2xl hover:shadow-emerald-500/5 flex flex-col justify-between relative overflow-hidden"
+              className="group cursor-pointer rounded-2xl bg-black/70 dark:bg-black/85 backdrop-blur-xl border border-white/10 hover:border-red-500/50 p-5 sm:p-6 transition-all duration-300 hover:shadow-2xl hover:shadow-red-500/10 flex flex-col justify-between relative overflow-hidden"
             >
               {/* Top Accent Gradient on Hover */}
-              <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-amber-400 to-teal-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+              <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-red-600 to-rose-500 opacity-0 group-hover:opacity-100 transition-opacity" />
 
               {/* Top Row: Avatar / Handle / Verdict Badge */}
               <div className="flex items-center justify-between pb-4 mb-4 border-b border-white/10">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-white/5 border border-white/15 flex items-center justify-center text-amber-300 font-bold text-sm group-hover:border-emerald-400 transition-colors">
+                  <div className="w-10 h-10 rounded-full bg-red-950/40 border border-red-500/30 flex items-center justify-center text-red-400 font-bold text-sm group-hover:border-red-400 transition-colors shadow-[0_0_10px_rgba(239,68,68,0.2)]">
                     {demo.sourceOrg.charAt(0)}
                   </div>
                   <div>
-                    <h4 className="text-sm font-bold text-white group-hover:text-emerald-300 transition-colors">
+                    <h4 className="text-sm font-bold text-white group-hover:text-red-400 transition-colors">
                       {demo.sourceOrg}
                     </h4>
                     <span className="text-xs text-white/40 font-mono">{demo.handle}</span>
@@ -157,7 +157,7 @@ export const DemoShowcase: React.FC<DemoShowcaseProps> = ({ onSelectDemo, lang }
                 <span className="truncate max-w-[240px]">
                   Sources: {demo.sources}
                 </span>
-                <span className="flex items-center gap-1 font-semibold text-white/80 group-hover:text-emerald-300 group-hover:translate-x-0.5 transition-all">
+                <span className="flex items-center gap-1 font-semibold text-white/80 group-hover:text-red-400 group-hover:translate-x-0.5 transition-all">
                   <span>Inspect Audit</span>
                   <ArrowRight className="w-3.5 h-3.5" />
                 </span>
