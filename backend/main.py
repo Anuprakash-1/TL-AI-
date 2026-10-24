@@ -1,6 +1,8 @@
 from fastapi import FastAPI, HTTPException, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
+from pathlib import Path
 import uvicorn
 import time
 from typing import Dict, Any
@@ -26,28 +28,29 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Simple in-memory rate limiter
-RATE_LIMIT_BUCKETS: Dict[str, list] = {}
-RATE_LIMIT_MAX = 30  # requests per minute
+# Targeted in-memory rate limiter strictly for resource-intensive /api/verify requests
+VERIFY_RATE_LIMIT_BUCKETS: Dict[str, list] = {}
+RATE_LIMIT_MAX = 30  # verification requests per minute per IP
 RATE_LIMIT_WINDOW = 60 # seconds
 
 @app.middleware("http")
 async def rate_limiting_middleware(request: Request, call_next):
-    client_ip = request.client.host if request.client else "unknown"
-    now = time.time()
-    
-    # Clean old requests
-    timestamps = RATE_LIMIT_BUCKETS.get(client_ip, [])
-    timestamps = [t for t in timestamps if now - t < RATE_LIMIT_WINDOW]
-    
-    if len(timestamps) >= RATE_LIMIT_MAX and request.url.path.startswith("/api/verify"):
-        return JSONResponse(
-            status_code=429,
-            content={"detail": "Rate limit exceeded. TruthLens allows up to 30 verification queries per minute per client."}
-        )
-    
-    timestamps.append(now)
-    RATE_LIMIT_BUCKETS[client_ip] = timestamps
+    # Only enforce rate limiting on verification endpoint to avoid penalizing health checks or static assets
+    if request.url.path.startswith("/api/verify") and request.method == "POST":
+        client_ip = request.client.host if request.client else "unknown"
+        now = time.time()
+        
+        timestamps = VERIFY_RATE_LIMIT_BUCKETS.get(client_ip, [])
+        timestamps = [t for t in timestamps if now - t < RATE_LIMIT_WINDOW]
+        
+        if len(timestamps) >= RATE_LIMIT_MAX:
+            return JSONResponse(
+                status_code=429,
+                content={"detail": "Rate limit exceeded. TruthLens allows up to 30 verification queries per minute per client."}
+            )
+        
+        timestamps.append(now)
+        VERIFY_RATE_LIMIT_BUCKETS[client_ip] = timestamps
     
     response = await call_next(request)
     return response
@@ -71,10 +74,13 @@ def verify_content(req: VerifyRequest):
     """
     Primary verification endpoint:
     Processes user-submitted text or news article URL,
-    extracts factual claims, searches independent sources,
+    extracts factual claims, searches independent sources concurrently,
     and returns a structured evidence-based verification report.
     """
-    if not req.text and not req.url:
+    text_provided = bool(req.text and req.text.strip())
+    url_provided = bool(req.url and req.url.strip())
+
+    if not text_provided and not url_provided:
         raise HTTPException(
             status_code=400,
             detail="Either 'text' or 'url' must be provided to verify."
@@ -85,7 +91,8 @@ def verify_content(req: VerifyRequest):
         
         # Persist report to SQLite database
         try:
-            save_report(response.dict())
+            report_data = response.model_dump() if hasattr(response, "model_dump") else response.dict()
+            save_report(report_data)
         except Exception as db_err:
             print(f"[DB Error] Failed to persist report: {db_err}")
 
@@ -101,15 +108,29 @@ def verify_content(req: VerifyRequest):
             detail=f"Verification engine encountered an internal processing error: {str(e)}"
         )
 
+# Demo ID alias mapping for convenience
+DEMO_ALIASES = {
+    "demo-1": "DEMO-TL-RBI2000",
+    "demo-2": "DEMO-TL-ISRO3",
+    "demo-3": "DEMO-TL-KANYASUMANGALA",
+    "demo-4": "DEMO-TL-SOLARSTORM",
+    "1": "DEMO-TL-RBI2000",
+    "2": "DEMO-TL-ISRO3",
+    "3": "DEMO-TL-KANYASUMANGALA",
+    "4": "DEMO-TL-SOLARSTORM",
+}
+
 @app.get("/api/reports/{report_id}")
 def get_report_by_id(report_id: str):
     """Retrieves a previously generated or demonstration verification report."""
+    resolved_id = DEMO_ALIASES.get(report_id.lower().strip(), report_id.strip())
+
     # Check demos first
     for demo in DEMO_REPORTS:
-        if demo["report_id"].lower() == report_id.lower():
+        if demo["report_id"].lower() == resolved_id.lower():
             return demo
             
-    report = get_report(report_id)
+    report = get_report(resolved_id)
     if not report:
         raise HTTPException(status_code=404, detail=f"Verification report '{report_id}' was not found.")
     return report
@@ -128,16 +149,13 @@ def clear_history():
 @app.post("/api/feedback", response_model=FeedbackResponse)
 def submit_feedback(fb: FeedbackRequest):
     """Allows users to submit corrections, flag broken citations, or provide new evidence."""
-    feedback_id = save_feedback(fb.dict())
+    fb_data = fb.model_dump() if hasattr(fb, "model_dump") else fb.dict()
+    feedback_id = save_feedback(fb_data)
     return FeedbackResponse(
         status="recorded",
         message="Thank you for your feedback. TruthLens monitors user corrections to refine evidence retrieval.",
         feedback_id=feedback_id
     )
-
-from fastapi.staticfiles import StaticFiles
-import os
-from pathlib import Path
 
 # Static build path
 FRONTEND_DIST = Path(__file__).resolve().parent.parent / "frontend" / "dist"

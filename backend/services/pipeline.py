@@ -6,6 +6,7 @@ from models import (
     VerifyRequest, VerifyResponse, ExtractedClaim, EvidenceSource,
     SourceComparison, VerificationMethod
 )
+from services.security import sanitize_untrusted_text
 from services.scraper import extract_article_from_url, ScraperException
 from services.search import search_web_multi_angle
 from services.ai_engine import (
@@ -20,11 +21,12 @@ def run_verification_pipeline(req: VerifyRequest) -> VerifyResponse:
     """
     Executes the end-to-end TruthLens AI verification engine:
     1. Content acquisition (URL scraping or direct text).
-    2. Claim extraction (individual factual statements).
-    3. Live multi-angle search query generation & execution.
-    4. Evidence extraction, credibility weighting & relation tagging.
-    5. Verdict determination with confidence & coverage assessment.
-    6. Source comparison & transparent methodological report.
+    2. Input sanitization.
+    3. Claim extraction (individual factual statements).
+    4. Live multi-angle search query generation & concurrent execution.
+    5. Evidence extraction, credibility weighting & relation tagging.
+    6. Verdict determination with confidence & coverage assessment.
+    7. Source comparison & transparent methodological report.
     """
     report_id = f"TL-{uuid.uuid4().hex[:10].upper()}"
     checked_at = datetime.now().isoformat()
@@ -47,6 +49,9 @@ def run_verification_pipeline(req: VerifyRequest) -> VerifyResponse:
         first_line = submitted_text.strip().split("\n")[0]
         if len(first_line) < 120:
             headline = first_line
+
+    # Sanitize untrusted input text
+    submitted_text = sanitize_untrusted_text(submitted_text, max_chars=15000)
 
     if not submitted_text.strip():
         raise ValueError("Please provide either text or a valid URL to verify.")
@@ -80,7 +85,7 @@ def run_verification_pipeline(req: VerifyRequest) -> VerifyResponse:
         claim_text = claim_dict["claim_text"]
         entities = claim_dict.get("entities", [])
 
-        # Step 2: Web Research via multi-angle search
+        # Step 2: Web Research via multi-angle concurrent search
         search_res = search_web_multi_angle(
             claim_text=claim_text,
             entities=entities,
@@ -190,10 +195,10 @@ def run_verification_pipeline(req: VerifyRequest) -> VerifyResponse:
             overall_coverage = "LOW"
             cov_reason = "Fewer than 2 relevant sources identified in public indices."
 
-        has_authoritative = any(s.domain_authority_notes in ("GOVERNMENT_PRIMARY", "CONSTITUTIONAL_PRIMARY", "CERTIFIED_FACT_CHECKER") for s in all_evidence_sources)
+        has_authoritative = any(s.domain_authority_notes in ("GOVERNMENT_PRIMARY", "CONSTITUTIONAL_PRIMARY", "CERTIFIED_FACT_CHECKER", "GLOBAL_NEWS_WIRE", "ESTABLISHED_NEWS_ORGANIZATION") for s in all_evidence_sources)
         if has_authoritative and overall_verdict in ("VERIFIED / SUPPORTED", "FALSE"):
             overall_confidence = "HIGH"
-            conf_reason = "Strong corroboration from recognized primary authorities or certified fact-checkers."
+            conf_reason = "Strong corroboration from recognized primary authorities, established news wires, or certified fact-checkers."
         elif len(all_evidence_sources) >= 2:
             overall_confidence = "MEDIUM"
             conf_reason = "Moderate consensus from credible secondary reporting; direct primary records may be limited."
@@ -203,7 +208,8 @@ def run_verification_pipeline(req: VerifyRequest) -> VerifyResponse:
         warning_notice = None
 
     # Step 6: Source Comparison
-    source_comparison_dict = synthesize_source_comparison([s.dict() for s in all_evidence_sources])
+    dumped_sources = [s.model_dump() if hasattr(s, "model_dump") else s.dict() for s in all_evidence_sources]
+    source_comparison_dict = synthesize_source_comparison(dumped_sources)
     source_comparison_obj = SourceComparison(**source_comparison_dict) if source_comparison_dict else None
 
     # Verification Method Summary

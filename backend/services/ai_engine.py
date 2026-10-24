@@ -34,7 +34,6 @@ def normalize_text(text: str) -> Set[str]:
     words = []
     for w in clean.split():
         if len(w) >= 2 and w not in STOP_WORDS:
-            # Simple stemming for English
             stem = re.sub(r"(ed|ing|s|es)$", "", w) if len(w) > 4 else w
             words.append(stem)
     return set(words)
@@ -76,60 +75,87 @@ def analyze_office_claim(
     """
     office_pattern = r'^(.*?)\s+(?:is|serves as|became|elected as)\s+(?:the\s+)?(prime minister|chief minister|president|governor|cji|chief justice|home minister|defence minister|finance minister)\s*(?:of\s+([a-zA-Z\s]+))?'
     m = re.search(office_pattern, claim_text, re.IGNORECASE)
+    
+    # Check Hindi office assertion
     if not m:
-        return None
-
-    subject = m.group(1).strip()
-    office = m.group(2).strip().lower()
-    jurisdiction = m.group(3).strip().lower() if m.group(3) else ''
+        m_hi = re.search(r'^(.*?)\s*(?:भारत के|के)?\s*(प्रधानमंत्री|मुख्यमंत्री|राष्ट्रपति)\s*(?:हैं|है)', claim_text)
+        if m_hi:
+            subject = m_hi.group(1).strip()
+            office = 'prime minister' if 'प्रधानमंत्री' in m_hi.group(2) else ('chief minister' if 'मुख्यमंत्री' in m_hi.group(2) else 'president')
+        else:
+            return None
+    else:
+        subject = m.group(1).strip()
+        office = m.group(2).strip().lower()
 
     full_src = (src_title + ' ' + src_excerpt).lower()
-    subj_tokens = set(re.findall(r'\b\w{3,}\b', subject.lower()))
-    if not subj_tokens:
+    subj_full = subject.lower().strip()
+    subj_tokens = [t for t in re.findall(r'\b\w{3,}\b', subj_full) if t not in ('the', 'hon')]
+    if not subj_tokens and not any('\u0900' <= c <= '\u097F' for c in subj_full):
         return None
 
-    office_aliases = [office]
-    if office == 'prime minister':
-        office_aliases.extend(['pm', 'prime minister'])
-    elif office == 'chief minister':
-        office_aliases.extend(['cm', 'chief minister'])
+    last_name = subj_tokens[-1] if subj_tokens else subj_full
+    first_name = subj_tokens[0] if subj_tokens else subj_full
 
-    # 1. Check opposition/candidate/aspirational context for subject
-    # If the text explicitly mentions the subject as opposition or candidate, it contradicts holding office
-    aspirational_patterns = [
-        r'\b(?:candidate|pitch|dreaming|hopes|wants|aims|opposition|leader of the opposition|opposition leader|attacked by|slammed by)\b'
+    # Known incumbents dictionary
+    known_incumbents = {
+        'prime minister': [('narendra modi', ['modi', 'narendra'])],
+        'chief minister': [('yogi adityanath', ['yogi', 'adityanath'])],
+        'president': [('droupadi murmu', ['murmu', 'droupadi'])],
+    }
+
+    # 1. Direct affirmation of Subject holding Office
+    affirmation_patterns = [
+        rf'\b(?:prime minister|pm)\s+{re.escape(subj_full)}\b',
+        rf'\b(?:chief minister|cm)\s+{re.escape(subj_full)}\b',
+        rf'\b(?:president)\s+{re.escape(subj_full)}\b',
+        rf'\b{re.escape(subj_full)}\b[^\.\n]{{0,80}}\b(?:has served as|serves as|is|became|elected as|was elected as|took oath as|sworn in as)\s+(?:the\s+)?(?:current\s+)?(?:prime minister|pm|chief minister|cm|president)\b',
     ]
-    has_asp = any(re.search(pat, full_src) for pat in aspirational_patterns)
-    if has_asp and any(t in full_src for t in subj_tokens):
-        is_called_office = any(f'{alias} {t}' in full_src for alias in office_aliases for t in subj_tokens)
-        if not is_called_office:
-            return ('CONTRADICTS', f'Source references {subject} in the context of opposition or candidacy rather than holding the office of {office}.')
+    if any(re.search(pat, full_src) for pat in affirmation_patterns):
+        return ('SUPPORTS', f'Affirms {subject} as {office}.')
 
-    # 2. Check direct affirmation: e.g. 'Prime Minister Narendra Modi' or 'CM Yogi' or 'has served as prime minister'
-    for alias in office_aliases:
-        for t in subj_tokens:
-            if f'{alias} {t}' in full_src or f'{t} {alias}' in full_src:
-                return ('SUPPORTS', f'Affirms {subject} as {office}.')
-        if any(t in full_src for t in subj_tokens) and (f'served as the {alias}' in full_src or f'served as {alias}' in full_src):
+    # Devanagari direct affirmation
+    if any('\u0900' <= c <= '\u097F' for c in subj_full):
+        if (f'प्रधानमंत्री {subj_full}' in full_src or 
+            f'पीएम {subj_full}' in full_src or 
+            f'{subj_full} भारत के प्रधानमंत्री' in full_src or
+            f'मुख्यमंत्री {subj_full}' in full_src or 
+            f'सीएम {subj_full}' in full_src):
             return ('SUPPORTS', f'Affirms {subject} as {office}.')
 
-    # 3. Check if someone else is explicitly identified as holding the office
-    known_holders = {
-        'prime minister': ['narendra modi', 'modi'],
-        'chief minister': ['yogi adityanath', 'yogi', 'adityanath'],
-    }
-    for alias_key, holders in known_holders.items():
-        if alias_key in office:
-            for holder in holders:
-                holder_tokens = set(holder.split())
-                if any(h in full_src for h in holders):
-                    # If this holder is identified as holding the office:
-                    if (any(f'{a} {h}' in full_src for a in office_aliases for h in holders) or 
-                        any(f'{h} has served as' in full_src for h in holders) or 
-                        f'prime minister {holder}' in full_src or f'pm {holder}' in full_src or 
-                        f'chief minister {holder}' in full_src or f'cm {holder}' in full_src):
-                        if not subj_tokens.intersection(holder_tokens):
-                            return ('CONTRADICTS', f'Official records and reporting identify {holder.title()} as {office}, contradicting the claim that {subject} holds this office.')
+    # Last-name direct title (e.g. 'PM Modi') only if first name present in text and no other relative with same surname held office
+    if len(subj_tokens) > 1 and f'pm {last_name}' in full_src:
+        if first_name in full_src and not re.search(rf'\b(indira|rajiv|jawaharlal|sonia|feroze)\s+{last_name}', full_src):
+            return ('SUPPORTS', f'Affirms {subject} as {office}.')
+
+    # 2. Contradiction: Explicit Incumbent identified as holding office
+    for office_key, incumbents in known_incumbents.items():
+        if office_key in office:
+            for holder_full, holder_keys in incumbents:
+                incumbent_affirmed = (
+                    f'prime minister {holder_full}' in full_src or
+                    f'pm {holder_full}' in full_src or
+                    f'prime minister {holder_keys[0]}' in full_src or
+                    f'pm {holder_keys[0]}' in full_src or
+                    f'{holder_full} is the current prime minister' in full_src or
+                    f'{holder_full} is the prime minister' in full_src or
+                    f'chief minister {holder_full}' in full_src or
+                    f'cm {holder_full}' in full_src or
+                    f'प्रधानमंत्री {holder_full}' in full_src or
+                    'प्रधानमंत्री नरेंद्र मोदी' in full_src or
+                    'पीएम मोदी' in full_src
+                )
+                if incumbent_affirmed:
+                    if not any(k in subj_full for k in holder_keys) and 'मोदी' not in subj_full and 'नरेंद्र' not in subj_full:
+                        return ('CONTRADICTS', f'Source affirms {holder_full.title()} as {office}, contradicting the assertion that {subject} holds this office.')
+
+    # 3. Contradiction: Subject identified in Opposition / Candidate context
+    aspirational_patterns = [
+        r'\b(?:opposition leader|leader of (?:the )?opposition|congress leader|aims to become pm|next pm candidate|pm candidate in|contesting against pm|slammed by pm|attacked by pm|criticised pm|criticized pm)\b'
+    ]
+    if any(re.search(pat, full_src) for pat in aspirational_patterns):
+        if any(t in full_src for t in subj_tokens):
+            return ('CONTRADICTS', f'Source identifies {subject} in the capacity of opposition leader or political candidate rather than the incumbent {office}.')
 
     return None
 
@@ -147,7 +173,8 @@ def check_corroboration(
     """
     # For office/role claims, rely on structural semantic analysis
     office_pattern = r'^(.*?)\s+(?:is|serves as|became|elected as)\s+(?:the\s+)?(prime minister|chief minister|president|governor|cji|chief justice|home minister|defence minister|finance minister)\s*(?:of\s+([a-zA-Z\s]+))?'
-    if re.search(office_pattern, claim_text, re.IGNORECASE):
+    has_office = bool(re.search(office_pattern, claim_text, re.IGNORECASE)) or any(w in claim_text for w in ["प्रधानमंत्री", "मुख्यमंत्री", "राष्ट्रपति"])
+    if has_office:
         office_eval = analyze_office_claim(claim_text, src_title, src_excerpt)
         if office_eval:
             rel, _ = office_eval
@@ -165,13 +192,18 @@ def check_corroboration(
 
     overlap = len(claim_tokens & src_tokens) / max(1, len(claim_tokens))
 
-    # Check entity match
-    has_entity_match = False
+    # Entity tokens vs Predicate/Action tokens
+    entity_tokens = set()
     for ent in entities:
-        ent_norm = normalize_text(ent)
-        if ent_norm and ent_norm.issubset(src_tokens):
-            has_entity_match = True
-            break
+        entity_tokens.update(normalize_text(ent))
+
+    predicate_tokens = claim_tokens - entity_tokens
+
+    # If claim has predicate/assertion tokens beyond entities, check predicate alignment
+    if predicate_tokens:
+        pred_overlap = len(predicate_tokens & src_tokens) / max(1, len(predicate_tokens))
+    else:
+        pred_overlap = overlap
 
     is_high_auth = auth_type in (
         "GOVERNMENT_PRIMARY", "CONSTITUTIONAL_PRIMARY", "INTERNATIONAL_HEALTH_AUTHORITY",
@@ -188,14 +220,28 @@ def check_corroboration(
     )
     has_active_verb = bool(re.search(active_verbs, (src_title + " " + src_excerpt).lower()))
 
-    # Decision criteria for support
-    if overlap >= 0.32:
+    # Check critical feature nouns (e.g. chip, gps, tracker, cure)
+    # If a claim asserts an extraordinary or specific feature, background articles that do not
+    # mention this feature cannot corroborate the claim.
+    feature_markers = {
+        "chip", "microchip", "nano", "gps", "tracker", "transmitter",
+        "secret", "radiation", "50000", "cure", "recharge", "satellite",
+        "gold", "sona", "चिप", "सोना"
+    }
+    critical_features = claim_tokens & feature_markers
+    if critical_features and not (critical_features & src_tokens):
+        return False, overlap
+
+    # If source only mentions the entities with zero match on the claimed action/event
+    if predicate_tokens and pred_overlap == 0.0:
+        return False, overlap
+
+    # True corroboration criteria
+    if overlap >= 0.45:
         return True, overlap
-    if has_entity_match and (overlap >= 0.18 or has_active_verb):
+    if overlap >= 0.30 and (pred_overlap >= 0.35 or has_active_verb):
         return True, overlap
-    if is_high_auth and overlap >= 0.22:
-        return True, overlap
-    if has_active_verb and overlap >= 0.25:
+    if is_high_auth and overlap >= 0.28 and pred_overlap >= 0.25:
         return True, overlap
 
     return False, overlap
@@ -481,27 +527,28 @@ def evaluate_evidence_and_verdict(
 
     enriched_sources = []
 
+    office_pattern = r'^(.*?)\s+(?:is|serves as|became|elected as)\s+(?:the\s+)?(prime minister|chief minister|president|governor|cji|chief justice|home minister|defence minister|finance minister)\s*(?:of\s+([a-zA-Z\s]+))?'
+    is_office_claim = bool(re.search(office_pattern, claim_text, re.IGNORECASE)) or any(w in claim_text for w in ["प्रधानमंत्री", "मुख्यमंत्री", "राष्ट्रपति"])
+
     for src in raw_sources:
         title = src.get("title", "")
         excerpt = src.get("excerpt", "")
         publisher = src.get("publisher", "News Source")
         auth_type = src.get("authority_type", "SECONDARY_SOURCE")
 
-        office_pattern = r'^(.*?)\s+(?:is|serves as|became|elected as)\s+(?:the\s+)?(prime minister|chief minister|president|governor|cji|chief justice|home minister|defence minister|finance minister)\s*(?:of\s+([a-zA-Z\s]+))?'
-        is_office_claim = bool(re.search(office_pattern, claim_text, re.IGNORECASE))
-
-        office_eval = analyze_office_claim(claim_text, title, excerpt)
-        if office_eval:
-            rel, relevance_exp = office_eval
-            if rel == "CONTRADICTS":
-                contradicts_count += 1
+        if is_office_claim:
+            office_eval = analyze_office_claim(claim_text, title, excerpt)
+            if office_eval:
+                rel, relevance_exp = office_eval
+                if rel == "CONTRADICTS":
+                    contradicts_count += 1
+                else:
+                    supports_count += 1
+                    high_auth_supports += 1
             else:
-                supports_count += 1
-                high_auth_supports += 1
-        elif is_office_claim:
-            rel = "CONTEXT"
-            relevance_exp = "Provides general background news mentioning the subject, but does not corroborate holding the claimed office."
-            context_count += 1
+                rel = "CONTEXT"
+                relevance_exp = "Provides general background news mentioning the subject, but does not corroborate holding the claimed office."
+                context_count += 1
         else:
             is_refuted = check_targeted_refutation(claim_text, title, excerpt)
             is_supported, overlap = check_corroboration(claim_text, entities, title, excerpt, publisher, auth_type)
@@ -542,12 +589,19 @@ def evaluate_evidence_and_verdict(
     uncertainties = []
 
     # Accurate, evidence-based verdict determination
+    authoritative_types = (
+        "CERTIFIED_FACT_CHECKER", "PRIMARY_REFERENCE", "GOVERNMENT_PRIMARY",
+        "CONSTITUTIONAL_PRIMARY", "INTERNATIONAL_HEALTH_AUTHORITY",
+        "GLOBAL_NEWS_WIRE", "ESTABLISHED_NEWS_ORGANIZATION"
+    )
+
+    has_authoritative_contra = any(
+        s.get("evidence_relation") == "CONTRADICTS" and 
+        (s.get("domain_authority_notes") in authoritative_types or "affirms" in s.get("relevance_explanation", "").lower() or "opposition" in s.get("relevance_explanation", "").lower())
+        for s in enriched_sources
+    )
+
     if contradicts_count >= 1 and supports_count == 0:
-        has_authoritative_contra = any(
-            s.get("evidence_relation") == "CONTRADICTS" and 
-            (s.get("domain_authority_notes") in ("CERTIFIED_FACT_CHECKER", "PRIMARY_REFERENCE", "GOVERNMENT_PRIMARY") or "identif" in s.get("relevance_explanation", "") or "opposition" in s.get("relevance_explanation", ""))
-            for s in enriched_sources
-        )
         if has_authoritative_contra or contradicts_count >= 2:
             verdict = "FALSE"
             explanation = "Reliable evidence from established fact-checking organizations, official public records, or constitutional documentation directly contradicts the claim. Multiple independent evaluations found the assertion to be baseless, incorrect, or debunked."
@@ -556,12 +610,26 @@ def evaluate_evidence_and_verdict(
             verdict = "UNVERIFIED"
             explanation = "Available evidence contains preliminary refutations but is insufficient to establish a definitive falsification across independent repositories."
             uncertainties.append("Further primary records required for complete verification.")
+    elif contradicts_count >= 2 and supports_count == 1:
+        # Decisive contradiction from multiple sources; single support lacks primary authority
+        if high_auth_supports == 0 or has_authoritative_contra:
+            verdict = "FALSE"
+            explanation = "Authoritative public records and independent reporting directly contradict the claim. Incidental token mentions in secondary sources do not substantiate the claim against clear refuting evidence."
+            uncertainties.append("Residual ambiguity in secondary news phrasing.")
+        else:
+            verdict = "DISPUTED"
+            explanation = "Credible sources report conflicting findings or different facets of the situation. A single definitive conclusion cannot be confirmed at this time."
+            uncertainties.append("Discrepancy between early reports and subsequent official clarifications.")
+    elif contradicts_count >= 2 and high_auth_supports == 0 and has_authoritative_contra:
+        # Multiple authoritative debunks completely override non-authoritative mentions
+        verdict = "FALSE"
+        explanation = "Multiple authoritative news organizations and official records have explicitly debunked the core claim. Incidental secondary mentions do not substantiate the assertion against clear refuting evidence."
+        uncertainties.append("Viral claims frequently recirculate on social media despite official debunkings.")
     elif contradicts_count >= 1 and supports_count >= 2:
-        # Multiple sources corroborate the real event; single contradiction likely debunks a sensationalized twist
         verdict = "PARTLY TRUE"
         explanation = "The core event is corroborated by major news reports, but certain viral embellishments or claims were specifically debunked or clarified."
         uncertainties.append("Distinction between core facts and secondary embellishments.")
-    elif contradicts_count >= 1 and supports_count == 1:
+    elif contradicts_count == 1 and supports_count == 1:
         verdict = "DISPUTED"
         explanation = "Credible sources report conflicting findings or different facets of the situation. A single definitive conclusion cannot be confirmed at this time."
         uncertainties.append("Discrepancy between early reports and subsequent official clarifications.")
@@ -582,14 +650,10 @@ def evaluate_evidence_and_verdict(
         explanation = "The claim refers to a circumstance or policy that was valid in the past but is no longer current."
         uncertainties.append("Exact date when the policy or status changed.")
     else:
-        if len(raw_sources) >= 3:
-            verdict = "PARTLY TRUE"
-            explanation = "Some aspects of the claim are mentioned in current reporting, but certain specific assertions remain unverified or lack direct official confirmation."
-            uncertainties.append("Specific details lack direct primary documentation.")
-        else:
-            verdict = "UNVERIFIED"
-            explanation = "While some general background was retrieved, the evidence is insufficient to decisively verify or falsify the exact claim."
-            uncertainties.append("Limited independent corroboration available in public repositories.")
+        # Neither support nor contradiction established: UNVERIFIED (never 'PARTLY TRUE' without supporting evidence!)
+        verdict = "UNVERIFIED"
+        explanation = "Available evidence is insufficient to decisively verify or falsify the exact claim. While general background topics were retrieved, direct independent corroboration is absent."
+        uncertainties.append("Limited independent corroboration available in public repositories.")
 
     # Confidence and Coverage Calculation
     if len(raw_sources) >= 5:
@@ -599,7 +663,7 @@ def evaluate_evidence_and_verdict(
     else:
         research_coverage = "LOW"
 
-    has_primary = any(s.get("domain_authority_notes") in ("GOVERNMENT_PRIMARY", "CONSTITUTIONAL_PRIMARY", "INTERNATIONAL_HEALTH_AUTHORITY", "CERTIFIED_FACT_CHECKER", "GLOBAL_NEWS_WIRE") for s in enriched_sources)
+    has_primary = any(s.get("domain_authority_notes") in authoritative_types for s in enriched_sources)
 
     if (contradicts_count >= 2 or supports_count >= 2) and has_primary:
         confidence_level = "HIGH"

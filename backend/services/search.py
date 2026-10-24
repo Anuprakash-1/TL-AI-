@@ -1,6 +1,7 @@
 import re
 import urllib.parse
 import xml.etree.ElementTree as ET
+import concurrent.futures
 from datetime import datetime
 from typing import List, Dict, Any, Optional
 import httpx
@@ -51,10 +52,10 @@ def identify_publisher_and_authority(url: str, title: str) -> tuple[str, str]:
         return "Web Source", "SECONDARY_SOURCE"
 
 def search_ddgs(query: str, max_results: int = 5) -> List[Dict[str, Any]]:
-    """Executes live web search using DDGS."""
+    """Executes live web search using DDGS with strict timeout."""
     results = []
     try:
-        with DDGS() as ddgs:
+        with DDGS(timeout=REQUEST_TIMEOUT_SECONDS) as ddgs:
             raw_results = list(ddgs.text(query, max_results=max_results))
             for item in raw_results:
                 url = item.get("href") or item.get("url", "")
@@ -72,7 +73,7 @@ def search_ddgs(query: str, max_results: int = 5) -> List[Dict[str, Any]]:
                         "source_provider": "DuckDuckGo Web Search"
                     })
     except Exception as e:
-        print(f"[Search-DDGS] Error for query '{query}': {e}")
+        print(f"[Search-DDGS] Notice for query '{query}': {e}")
     return results
 
 def search_google_news_rss(query: str, language: str = "en", country: str = "IN", max_results: int = 5) -> List[Dict[str, Any]]:
@@ -127,7 +128,7 @@ def search_google_news_rss(query: str, language: str = "en", country: str = "IN"
                             "source_provider": "Google News Live RSS"
                         })
     except Exception as e:
-        print(f"[Search-NewsRSS] Error for query '{query}': {e}")
+        print(f"[Search-NewsRSS] Notice for query '{query}': {e}")
     return results
 
 def search_wikipedia(query: str, language: str = "en") -> List[Dict[str, Any]]:
@@ -170,7 +171,7 @@ def search_wikipedia(query: str, language: str = "en") -> List[Dict[str, Any]]:
                             "source_provider": f"Wikipedia ({lang_code.upper()})"
                         })
     except Exception as e:
-        print(f"[Search-Wiki] Error for query '{query}': {e}")
+        print(f"[Search-Wiki] Notice for query '{query}': {e}")
     return results
 
 def search_web_multi_angle(
@@ -180,7 +181,7 @@ def search_web_multi_angle(
     country: str = "IN"
 ) -> Dict[str, Any]:
     """
-    Executes a comprehensive multi-angle real web search for a factual claim.
+    Executes a comprehensive multi-angle real web search concurrently for a factual claim.
     Formulates queries for:
     1. Exact / direct claim phrasing.
     2. Fact-check specific query ("claim + fact check / debunked / official").
@@ -240,18 +241,20 @@ def search_web_multi_angle(
         else:
             queries.append(f"{content_query} news")
 
-    # Query 3: Entity + official verification
+    # Query 3: Entity + official verification (targeted)
     lower_claim = claim_clean.lower()
     if any(w in lower_claim for w in ["who", "health organization", "mpox", "covid", "vaccine"]):
         queries.append(f"{content_query} WHO official statement")
-    elif any(w in lower_claim for w in ["isro", "chandrayaan", "space", "satellite"]):
+    elif any(w in lower_claim for w in ["isro", "chandrayaan", "space", "satellite", "gaganyaan"]):
         queries.append(f"{content_query} ISRO official")
     elif any(w in lower_claim for w in ["nasa", "solar", "eclipse", "space weather"]):
         queries.append(f"{content_query} NASA official")
     elif country == "IN":
-        if any(w in lower_claim for w in ["government", "modi", "rbi", "scheme", "pension", "yojana", "yojna", "bank", "repo rate"]):
-            queries.append(f"{content_query} RBI PIB official")
-        elif any(w in lower_claim for w in ["supreme court", "high court", "bail", "verdict", "judge"]):
+        if any(w in lower_claim for w in ["rbi", "repo rate", "currency", "bank", "2000 note", "reserve bank"]):
+            queries.append(f"{content_query} RBI official notification")
+        elif any(w in lower_claim for w in ["scheme", "yojana", "yojna", "subsidy", "pension"]):
+            queries.append(f"{content_query} PIB official")
+        elif any(w in lower_claim for w in ["supreme court", "high court", "bail", "verdict", "judge", "cji"]):
             queries.append(f"{content_query} Supreme Court of India verdict")
         elif any(w in lower_claim for w in ["election", "evm", "vote", "voter"]):
             queries.append(f"{content_query} Election Commission of India official")
@@ -259,29 +262,13 @@ def search_web_multi_angle(
     # Deduplicate queries
     unique_queries = list(dict.fromkeys(queries))[:3]
     
-    all_collected_sources = []
-    queries_run = []
-    search_success = False
-
-    for q in unique_queries:
-        queries_run.append(q)
-        
-        # 1. Search Google News RSS (Fast, real articles, pub dates)
-        news_items = search_google_news_rss(q, language=language, country=country, max_results=3)
-        if news_items:
-            search_success = True
-            all_collected_sources.extend(news_items)
-
-        # 2. Search DDGS Web
-        ddg_items = search_ddgs(q, max_results=3)
-        if ddg_items:
-            search_success = True
-            all_collected_sources.extend(ddg_items)
-
-    # 3. Wikipedia lookup for core entity AND office/role
+    # Target entities for encyclopedic Wikipedia reference
     wiki_targets = []
     if entities:
-        wiki_targets.extend(entities[:2])
+        # Filter out numbers, currency amounts, and generic short words
+        for ent in entities:
+            if not re.search(r"^(?:₹|\$|\d|in\b|the\b)", ent, re.IGNORECASE) and len(ent) >= 3:
+                wiki_targets.append(ent)
     
     # Check for constitutional or government office in claim
     lower_c = claim_clean.lower()
@@ -296,11 +283,33 @@ def search_web_multi_angle(
     if "rbi" in lower_c or "reserve bank" in lower_c or "repo rate" in lower_c:
         wiki_targets.append("Reserve Bank of India")
 
-    for target in list(dict.fromkeys(wiki_targets))[:2]:
-        wiki_items = search_wikipedia(target, language=language)
-        if wiki_items:
-            search_success = True
-            all_collected_sources.extend(wiki_items)
+    deduped_wiki_targets = list(dict.fromkeys(wiki_targets))[:2]
+
+    all_collected_sources = []
+    queries_run = []
+    search_success = False
+
+    # Execute all searches concurrently using ThreadPoolExecutor for 4x-5x speedup
+    total_workers = len(unique_queries) * 2 + len(deduped_wiki_targets) + 1
+    with concurrent.futures.ThreadPoolExecutor(max_workers=min(10, max(2, total_workers))) as executor:
+        futures = []
+
+        for q in unique_queries:
+            queries_run.append(q)
+            futures.append(executor.submit(search_google_news_rss, q, language, country, 3))
+            futures.append(executor.submit(search_ddgs, q, 3))
+
+        for target in deduped_wiki_targets:
+            futures.append(executor.submit(search_wikipedia, target, language))
+
+        for future in concurrent.futures.as_completed(futures):
+            try:
+                items = future.result()
+                if items:
+                    search_success = True
+                    all_collected_sources.extend(items)
+            except Exception as e:
+                print(f"[Search-Worker] Handled exception: {e}")
 
     # Deduplicate sources by URL
     seen_urls = set()

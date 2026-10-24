@@ -1,6 +1,7 @@
 import httpx
 from bs4 import BeautifulSoup
-from urllib.parse import urlparse
+import urllib.parse
+from urllib.parse import urlparse, urljoin
 from typing import Dict, Any, Optional
 from config import USER_AGENT, REQUEST_TIMEOUT_SECONDS
 from services.security import validate_safe_url, sanitize_untrusted_text
@@ -12,21 +13,38 @@ def extract_article_from_url(url: str) -> Dict[str, Any]:
     """
     Safely retrieves and parses an article from a user-provided URL.
     Enforces SSRF prevention, response size caps, and polite headers.
+    Validates all redirect locations to prevent SSRF via HTTP 30x redirects.
     """
-    is_safe, error_msg = validate_safe_url(url)
-    if not is_safe:
-        raise ScraperException(f"URL Security Block: {error_msg}")
-
     headers = {
         "User-Agent": USER_AGENT,
         "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
         "Accept-Language": "en-US,en;q=0.9,hi;q=0.8",
     }
 
+    current_url = url
+    max_redirects = 4
+    redirect_count = 0
+    html_text = ""
+
     try:
-        with httpx.Client(timeout=REQUEST_TIMEOUT_SECONDS, follow_redirects=True, max_redirects=3) as client:
-            # Stream response to avoid unbounded memory usage
-            with client.stream("GET", url, headers=headers) as response:
+        with httpx.Client(timeout=REQUEST_TIMEOUT_SECONDS, follow_redirects=False) as client:
+            while redirect_count < max_redirects:
+                is_safe, error_msg = validate_safe_url(current_url)
+                if not is_safe:
+                    raise ScraperException(f"URL Security Block: {error_msg}")
+
+                response = client.get(current_url, headers=headers)
+                
+                # Check for redirects
+                if response.status_code in (301, 302, 303, 307, 308):
+                    redirect_location = response.headers.get("location")
+                    if not redirect_location:
+                        break
+                    # Handle relative redirect URLs
+                    current_url = urljoin(current_url, redirect_location)
+                    redirect_count += 1
+                    continue
+
                 if response.status_code in (401, 403):
                     raise ScraperException(
                         f"Access restricted by publisher (HTTP {response.status_code}). "
@@ -43,14 +61,11 @@ def extract_article_from_url(url: str) -> Dict[str, Any]:
                         "Please check the URL or paste the article text directly."
                     )
 
-                # Cap read at 2 MB
-                content_bytes = bytearray()
-                for chunk in response.iter_bytes(chunk_size=8192):
-                    content_bytes.extend(chunk)
-                    if len(content_bytes) > 2 * 1024 * 1024:
-                        break
-
-        html_text = content_bytes.decode("utf-8", errors="replace")
+                # Cap content at 2 MB
+                html_text = response.content[:2 * 1024 * 1024].decode("utf-8", errors="replace")
+                break
+    except ScraperException:
+        raise
     except httpx.TimeoutException:
         raise ScraperException(
             "Connection timed out while retrieving the URL. The remote server is responding too slowly. "
@@ -82,7 +97,7 @@ def extract_article_from_url(url: str) -> Dict[str, Any]:
     if og_site and og_site.get("content"):
         publisher = og_site["content"].strip()
     else:
-        domain = urlparse(url).netloc
+        domain = urlparse(current_url).netloc
         publisher = domain.replace("www.", "")
 
     # 3. Publication Date
@@ -131,5 +146,5 @@ def extract_article_from_url(url: str) -> Dict[str, Any]:
         "publisher": publisher,
         "published_at": published_at,
         "text": sanitized_text,
-        "url": url,
+        "url": current_url,
     }
