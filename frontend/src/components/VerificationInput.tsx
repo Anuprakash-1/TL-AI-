@@ -95,7 +95,7 @@ export const VerificationInput: React.FC<VerificationInputProps> = ({
 
   return (
     <div className="w-full max-w-4xl mx-auto px-4 mt-2">
-      <div className="bg-white dark:bg-navy-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xl overflow-hidden transition-all duration-200">
+      <div className="bg-white/85 dark:bg-navy-900/80 backdrop-blur-md border border-slate-200/80 dark:border-slate-800/80 rounded-2xl shadow-xl overflow-hidden transition-all duration-200">
         {/* Tab headers */}
         <div className="flex border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-navy-950/50 p-1">
           <button

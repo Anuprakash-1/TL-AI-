@@ -22,6 +22,7 @@ import { Language, translations } from './i18n';
 import { verifyNews, getReport, getHistory, clearHistory as apiClearHistory, checkHealth } from './api';
 import { AlertCircle, Flag, RotateCcw, ChevronDown } from 'lucide-react';
 import { SectionNavigator } from './components/SectionNavigator';
+import { AnimatedBackground } from './components/AnimatedBackground';
 
 export function App() {
   // Theme state
@@ -180,7 +181,9 @@ export function App() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-50 dark:bg-navy-950 text-slate-900 dark:text-slate-100 transition-colors duration-200 font-sans">
+    <div className="min-h-screen flex flex-col bg-slate-50/75 dark:bg-navy-950/80 text-slate-900 dark:text-slate-100 transition-colors duration-200 font-sans relative overflow-x-hidden">
+      {/* Dynamic Animated Ambient & Neural Constellation Background */}
+      <AnimatedBackground isDark={isDark} />
       {/* Navbar */}
       <Navbar
         lang={lang}
@@ -197,7 +200,7 @@ export function App() {
       <SectionNavigator lang={lang} hasReport={Boolean(currentReport && !isLoading)} />
 
       {/* Main Layered Container */}
-      <main className="flex-1">
+      <main className="flex-1 relative z-10">
         {/* Layer 1: Verification Hub (Hero & Interactive Console) */}
         <section
           id="section-verify"
@@ -301,7 +304,7 @@ export function App() {
               />
 
               {/* Bottom Feedback Bar */}
-              <div className="p-4 rounded-2xl bg-white dark:bg-navy-900 border border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-md">
+              <div className="p-4 rounded-2xl bg-white/85 dark:bg-navy-900/80 backdrop-blur-md border border-slate-200/80 dark:border-slate-800/80 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-md">
                 <div className="text-xs text-slate-500 dark:text-slate-400 text-center sm:text-left">
                   <span className="font-semibold text-slate-700 dark:text-slate-300 block">
                     Found an inaccuracy or broken link in this report?

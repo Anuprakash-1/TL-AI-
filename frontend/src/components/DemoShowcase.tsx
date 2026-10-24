@@ -83,7 +83,7 @@ export const DemoShowcase: React.FC<DemoShowcaseProps> = ({ onSelectDemo, lang }
             <div
               key={demo.id}
               onClick={() => onSelectDemo(demo.id)}
-              className="group p-5 rounded-2xl bg-white dark:bg-navy-900 border border-slate-200 dark:border-slate-800 hover:border-blue-400 dark:hover:border-cyan-500 hover:shadow-xl cursor-pointer transition-all flex flex-col justify-between"
+              className="group p-5 rounded-2xl bg-white/85 dark:bg-navy-900/80 backdrop-blur-md border border-slate-200/80 dark:border-slate-800/80 hover:border-blue-400 dark:hover:border-cyan-500 hover:shadow-xl cursor-pointer transition-all flex flex-col justify-between"
             >
               <div className="space-y-3">
                 <div className="flex items-center justify-between gap-2">

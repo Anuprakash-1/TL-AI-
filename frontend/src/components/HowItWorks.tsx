@@ -77,7 +77,7 @@ export const HowItWorks: React.FC<HowItWorksProps> = ({ lang }) => {
           return (
             <div
               key={step.num}
-              className="p-6 rounded-2xl bg-white dark:bg-navy-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-3 relative overflow-hidden"
+              className="p-6 rounded-2xl bg-white/85 dark:bg-navy-900/80 backdrop-blur-md border border-slate-200/80 dark:border-slate-800/80 shadow-sm space-y-3 relative overflow-hidden"
             >
               <div className="flex items-center justify-between">
                 <div className="p-2.5 rounded-xl bg-blue-50 dark:bg-navy-800 text-blue-600 dark:text-cyan-400">

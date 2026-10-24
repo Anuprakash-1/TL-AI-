@@ -132,7 +132,7 @@ ${report.evidence_sources.map((s, idx) => `[${idx + 1}] ${s.title} (${s.publishe
   };
 
   return (
-    <div className="bg-white dark:bg-navy-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 sm:p-8 shadow-xl transition-all">
+    <div className="bg-white/85 dark:bg-navy-900/80 backdrop-blur-md border border-slate-200/80 dark:border-slate-800/80 rounded-2xl p-6 sm:p-8 shadow-xl transition-all">
       {/* Warning Notice if Live Search was interrupted */}
       {report.warning_notice && (
         <div className="mb-6 p-4 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800 text-amber-800 dark:text-amber-200 flex items-center gap-3">
