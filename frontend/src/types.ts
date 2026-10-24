@@ -1,12 +1,15 @@
 export type VerdictType =
-  | 'VERIFIED / SUPPORTED'
-  | 'FALSE'
+  | 'TRUE'
+  | 'MOSTLY TRUE'
   | 'MISLEADING'
-  | 'PARTLY TRUE'
+  | 'MOSTLY FALSE'
+  | 'FALSE'
   | 'UNVERIFIED'
   | 'OUTDATED'
-  | 'SATIRE / NOT INTENDED AS FACT'
   | 'OPINION / NOT FACT-CHECKABLE'
+  | 'SATIRE / NOT INTENDED AS FACT'
+  | 'VERIFIED / SUPPORTED'
+  | 'PARTLY TRUE'
   | 'DISPUTED';
 
 export type ConfidenceLevel = 'LOW' | 'MEDIUM' | 'HIGH';
@@ -37,6 +40,8 @@ export interface ExtractedClaim {
   verdict: VerdictType;
   verdict_definition: string;
   explanation: string;
+  what_evidence_establishes?: string | null;
+  corrected_information?: string | null;
   supporting_evidence_indices: number[];
   contradicting_evidence_indices: number[];
   context_evidence_indices: number[];
@@ -74,6 +79,9 @@ export interface VerifyResponse {
   verdict: VerdictType;
   verdict_definition: string;
   explanation: string;
+  what_evidence_establishes?: string | null;
+  corrected_information?: string | null;
+  final_conclusion?: string | null;
   evidence_sources: EvidenceSource[];
   source_comparison?: SourceComparison | null;
   verification_method: VerificationMethod;
@@ -98,10 +106,12 @@ export interface HistoryItem {
   created_at: string;
 }
 
-export interface FeedbackData {
+export interface FeedbackPayload {
   report_id: string;
-  claim_id?: string;
+  claim_id?: string | null;
   feedback_type: string;
   comments: string;
-  user_email?: string;
+  user_email?: string | null;
 }
+
+export type FeedbackData = FeedbackPayload;

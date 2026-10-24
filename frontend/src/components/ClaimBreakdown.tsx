@@ -1,5 +1,5 @@
 import React from 'react';
-import { Tag, Calendar, HelpCircle, CheckCircle2, XCircle, AlertTriangle, Layers } from 'lucide-react';
+import { Tag, Calendar, HelpCircle, CheckCircle2, XCircle, AlertTriangle, Layers, BookOpen, Lightbulb } from 'lucide-react';
 import { ExtractedClaim } from '../types';
 import { getVerdictBadgeStyle } from './VerdictHeader';
 import { Language, translations } from '../i18n';
@@ -86,6 +86,32 @@ export const ClaimBreakdown: React.FC<ClaimBreakdownProps> = ({ claims, lang }) 
                 </span>
                 {claim.explanation}
               </div>
+
+              {/* What Evidence Establishes */}
+              {claim.what_evidence_establishes && (
+                <div className="p-3 rounded-lg bg-blue-50/70 dark:bg-blue-950/30 border border-blue-200/80 dark:border-blue-900/60 text-xs sm:text-sm space-y-1">
+                  <div className="flex items-center gap-1.5 font-bold text-blue-800 dark:text-cyan-300">
+                    <BookOpen className="w-3.5 h-3.5 text-blue-600 dark:text-cyan-400" />
+                    <span>What Evidence Establishes:</span>
+                  </div>
+                  <p className="text-slate-700 dark:text-slate-300 pl-5">
+                    {claim.what_evidence_establishes}
+                  </p>
+                </div>
+              )}
+
+              {/* Corrected / Verified Reality */}
+              {claim.corrected_information && (
+                <div className="p-3 rounded-lg bg-amber-50/70 dark:bg-amber-950/30 border border-amber-300/80 dark:border-amber-800/60 text-xs sm:text-sm space-y-1">
+                  <div className="flex items-center gap-1.5 font-bold text-amber-800 dark:text-amber-300">
+                    <Lightbulb className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+                    <span>Corrected / Accurate Information:</span>
+                  </div>
+                  <p className="text-slate-700 dark:text-slate-300 pl-5 font-medium">
+                    {claim.corrected_information}
+                  </p>
+                </div>
+              )}
 
               {/* Remaining Uncertainties if any */}
               {claim.remaining_uncertainties && claim.remaining_uncertainties.length > 0 && (

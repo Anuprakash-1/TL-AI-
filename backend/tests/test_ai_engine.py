@@ -111,7 +111,7 @@ def test_evaluate_evidence_unverified_not_partly_true_when_zero_supports():
         {"title": "Astronomy Observatory in Rajasthan", "excerpt": "Stargazing events in rural areas.", "publisher": "Space", "authority_type": "SECONDARY_SOURCE", "url": "http://example.com/3"},
     ]
 
-    verdict, explanation, enriched, uncertainties, conf, cov = evaluate_evidence_and_verdict(claim, raw_sources)
+    verdict, explanation, enriched, uncertainties, conf, cov = evaluate_evidence_and_verdict(claim, raw_sources)[:6]
     assert verdict == "UNVERIFIED"
     assert "insufficient" in explanation.lower()
 
@@ -127,10 +127,9 @@ def test_evaluate_evidence_decisive_false_on_overwhelming_contradictions():
         {"title": "BOOM Live: Debunked Kanya Sumangala fake scheme", "excerpt": "The claim of Rs 50,000 direct bank transfer is bogus and fraudulent.", "publisher": "BOOM Live", "authority_type": "CERTIFIED_FACT_CHECKER", "url": "https://boomlive.in/1"},
     ]
 
-    verdict, explanation, enriched, uncertainties, conf, cov = evaluate_evidence_and_verdict(claim, raw_sources)
+    verdict, explanation, enriched, uncertainties, conf, cov = evaluate_evidence_and_verdict(claim, raw_sources)[:6]
     assert verdict == "FALSE"
     assert "contradicts" in explanation.lower() or "debunked" in explanation.lower()
-
 
 def test_unesco_national_anthem_debunk_classified_false():
     # Debunk titles for UNESCO anthem must be recognized as CONTRADICTS and result in FALSE
@@ -157,7 +156,7 @@ def test_unesco_national_anthem_debunk_classified_false():
         }
     ]
 
-    verdict, explanation, enriched, uncertainties, conf, cov = evaluate_evidence_and_verdict(claim, raw_sources)
+    verdict, explanation, enriched, uncertainties, conf, cov = evaluate_evidence_and_verdict(claim, raw_sources)[:6]
     assert verdict == "FALSE"
     assert all(s["evidence_relation"] == "CONTRADICTS" for s in enriched)
 
@@ -179,7 +178,7 @@ def test_recharge_scam_debunk_classified_false():
         }
     ]
 
-    verdict, explanation, enriched, uncertainties, conf, cov = evaluate_evidence_and_verdict(claim, raw_sources)
+    verdict, explanation, enriched, uncertainties, conf, cov = evaluate_evidence_and_verdict(claim, raw_sources)[:6]
     assert verdict == "FALSE"
     assert enriched[0]["evidence_relation"] == "CONTRADICTS"
 

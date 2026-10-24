@@ -7,15 +7,19 @@ from config import GEMINI_API_KEY, OPENAI_API_KEY
 from services.security import wrap_untrusted_text_for_ai
 
 VERDICT_DEFINITIONS = {
-    "VERIFIED / SUPPORTED": "Reliable available evidence from primary documents, official statements, or multiple independent sources confirms the factual claim.",
-    "FALSE": "Reliable evidence directly contradicts the claim, or primary authorities have officially debunked it as untrue.",
-    "MISLEADING": "The claim contains some element of truth but omits essential context, quotes out of context, or presents details in a deceptive manner.",
-    "PARTLY TRUE": "Some independently verifiable aspects of the claim are supported by evidence, while other specific claims are inaccurate, exaggerated, or unsubstantiated.",
-    "UNVERIFIED": "The available evidence is insufficient to establish whether the claim is true or false. Absence of immediate evidence does not prove falsehood.",
-    "OUTDATED": "The claim was historically accurate at a past time, but no longer describes the current situation or relies on superseded policies/facts.",
-    "SATIRE / NOT INTENDED AS FACT": "Contextual evidence indicates the content was created as satire, humor, or parody, not as a factual report.",
+    "TRUE": "Strong, reliable evidence from authoritative or primary sources directly supports the factual claim.",
+    "MOSTLY TRUE": "The central claim is corroborated by reliable evidence, but minor details require qualification or context.",
+    "MISLEADING": "The claim contains some truth but omits important context or presents information deceptively.",
+    "MOSTLY FALSE": "Important parts of the claim are contradicted or uncorroborated by reliable evidence.",
+    "FALSE": "Strong, reliable evidence from official records, primary documentation, or established investigations directly contradicts the claim.",
+    "UNVERIFIED": "Available evidence in authoritative and public indices is currently insufficient to reach a reliable conclusion.",
+    "OUTDATED": "The claim was previously accurate but is no longer accurate in the stated context.",
     "OPINION / NOT FACT-CHECKABLE": "The content expresses a personal value judgment, prediction, or subjective viewpoint rather than an empirical, verifiable fact.",
-    "DISPUTED": "Credible, independent sources offer conflicting evidence or interpretations, preventing a singular definitive verdict at this time."
+    "SATIRE / NOT INTENDED AS FACT": "Contextual evidence indicates the content was created as satire, humor, or parody, not as a factual report.",
+    # Backward compatibility aliases
+    "VERIFIED / SUPPORTED": "Strong, reliable evidence from authoritative or primary sources directly supports the factual claim.",
+    "PARTLY TRUE": "The central claim is corroborated by reliable evidence, but minor details require qualification or context.",
+    "DISPUTED": "Credible sources report conflicting findings; a single definitive conclusion cannot be confirmed at this time."
 }
 
 STOP_WORDS = {
@@ -62,9 +66,9 @@ def check_targeted_refutation(claim_text: str, src_title: str, src_excerpt: str)
         r"\bnot\s+ranked\b",
         r"\bnot\s+true\b",
         r"\bno\s+such\b",
-        r"\bno,\s+it[\'’]s\s+a\s+scam\b",
+        r"\bno,\s+it['’]s\s+a\s+scam\b",
         r"\bno,\s+the\s+.*?\b(?:scam|fake|hoax|untrue)\b",
-        r"\bno,\s+[\w\s]{1,30}\s+(?:did\s*not|does\s*not|is\s*not|was\s*not|has\s*not|isn[\'’]t)\b",
+        r"\bno,\s+[\w\s]{1,30}\s+(?:did\s*not|does\s*not|is\s*not|was\s*not|has\s*not|isn['’]t)\b",
     ]
     if any(re.search(pat, filtered_text) for pat in factcheck_badges):
         return True
@@ -73,7 +77,7 @@ def check_targeted_refutation(claim_text: str, src_title: str, src_excerpt: str)
     has_fc_prefix = bool(re.search(r"\b(?:fact[\s\-]check|factcheck|पड़ताल|सच\s*क्या\s*है)\b", filtered_text))
     fc_signals = [
         r"\b(?:false|fake|hoax|scam|fraud|misleading|bogus|untrue|fabricated|morphed|doctored|baseless|unfounded|myth)\b",
-        r"\b(?:did\s*not|was\s*not|is\s*not|does\s*not|has\s*not|have\s*not|never|isn[\'’]t)\b",
+        r"\b(?:did\s*not|was\s*not|is\s*not|does\s*not|has\s*not|have\s*not|never|isn['’]t)\b",
         r"\b(?:no\s+such|no\s+evidence|no\s+record|no\s+announcement|no\s+order)\b",
         r"\bno,\s+",
         r"\b(?:गलत|फर्जी|झूठ|निराधार|भ्रामक)\b",
@@ -105,7 +109,7 @@ def analyze_office_claim(
     """
     office_pattern = r'^(.*?)\s+(?:is|serves as|became|elected as)\s+(?:the\s+)?(prime minister|chief minister|president|governor|cji|chief justice|home minister|defence minister|finance minister)\s*(?:of\s+([a-zA-Z\s]+))?'
     m = re.search(office_pattern, claim_text, re.IGNORECASE)
-    
+
     # Check Hindi office assertion
     if not m:
         m_hi = re.search(r'^(.*?)\s*(?:भारत के|के)?\s*(प्रधानमंत्री|मुख्यमंत्री|राष्ट्रपति)\s*(?:हैं|है)', claim_text)
@@ -127,7 +131,6 @@ def analyze_office_claim(
     last_name = subj_tokens[-1] if subj_tokens else subj_full
     first_name = subj_tokens[0] if subj_tokens else subj_full
 
-    # Known incumbents dictionary
     known_incumbents = {
         'prime minister': [('narendra modi', ['modi', 'narendra'])],
         'chief minister': [('yogi adityanath', ['yogi', 'adityanath'])],
@@ -153,7 +156,6 @@ def analyze_office_claim(
             f'सीएम {subj_full}' in full_src):
             return ('SUPPORTS', f'Affirms {subject} as {office}.')
 
-    # Last-name direct title (e.g. 'PM Modi') only if first name present in text and no other relative with same surname held office
     if len(subj_tokens) > 1 and f'pm {last_name}' in full_src:
         if first_name in full_src and not re.search(rf'\b(indira|rajiv|jawaharlal|sonia|feroze)\s+{last_name}', full_src):
             return ('SUPPORTS', f'Affirms {subject} as {office}.')
@@ -219,6 +221,8 @@ def check_corroboration(
         "fact check", "fact-check", "factcheck", "fake alert", "debunk", "hoax", "scam",
         "not true", "not declared", "not announced", "not ranked", "myth",
         "did not declare", "was not declared", "did not announce", "no such",
+        "no longer valid", "superseded", "reclassified", "dwarf planet", "no longer a planet",
+        "no longer considered", "no longer active", "former classification", "demoted",
         "पड़ताल", "फर्जी", "गलत दावा", "भ्रामक"
     ]
     if any(d in full_text for d in debunk_tokens):
@@ -239,30 +243,34 @@ def check_corroboration(
 
     predicate_tokens = claim_tokens - entity_tokens
 
-    # If claim has predicate/assertion tokens beyond entities, check predicate alignment
-    if predicate_tokens:
+    # Inception / creation synonym bridging
+    creation_synonyms = {"creat", "conceiv", "invent", "design", "develop", "found", "author", "build", "launch", "originat", "craft"}
+    if (predicate_tokens & creation_synonyms) and (src_tokens & creation_synonyms):
+        pred_overlap = 0.40
+    elif predicate_tokens:
         pred_overlap = len(predicate_tokens & src_tokens) / max(1, len(predicate_tokens))
     else:
         pred_overlap = overlap
 
     is_high_auth = auth_type in (
         "GOVERNMENT_PRIMARY", "CONSTITUTIONAL_PRIMARY", "INTERNATIONAL_HEALTH_AUTHORITY",
-        "GLOBAL_NEWS_WIRE", "ESTABLISHED_NEWS_ORGANIZATION", "PRIMARY_REFERENCE"
+        "GLOBAL_NEWS_WIRE", "ESTABLISHED_NEWS_ORGANIZATION", "PRIMARY_REFERENCE",
+        "CERTIFIED_FACT_CHECKER"
     )
 
-    # Active reporting patterns
+    # Active reporting & factual confirmation patterns
     active_verbs = (
         r"\b(?:declares?|declared|announces?|announced|confirms?|confirmed|launches?|launched|"
         r"approves?|approved|passes?|passed|orders?|ordered|rules?|ruled|reports?|reported|"
         r"decides?|decided|keeps?|kept|unveils?|unveiled|signs?|signed|meets?|met|hits?|reaches?|"
-        r"holds?|held|secures?|secured|wins?|won|awards?|awarded)\b|"
+        r"holds?|held|secures?|secured|wins?|won|awards?|awarded|states?|stated|proves?|proved|"
+        r"established|defines?|defined|discovered|invented|partitioned|equals?|equals|"
+        r"conceiv\w*|design\w*|author\w*|develop\w*)\b|"
         r"(?:पुष्टि|घोषणा|सत्यापित|मंजूरी|फैसला|आधिकारिक|लागू|किया)"
     )
     has_active_verb = bool(re.search(active_verbs, (src_title + " " + src_excerpt).lower()))
 
-    # Check critical feature nouns (e.g. chip, gps, tracker, cure)
-    # If a claim asserts an extraordinary or specific feature, background articles that do not
-    # mention this feature cannot corroborate the claim.
+    # Check critical feature nouns and superlatives
     feature_markers = {
         "chip", "microchip", "nano", "gps", "tracker", "transmitter",
         "secret", "radiation", "50000", "5000", "cure", "recharge", "satellite",
@@ -272,16 +280,16 @@ def check_corroboration(
     if critical_features and not (critical_features & src_tokens):
         return False, overlap
 
-    # If source only mentions the entities with zero match on the claimed action/event
+    # If source only mentions entities with zero match on the claimed action/event
     if predicate_tokens and pred_overlap == 0.0:
         return False, overlap
 
     # True corroboration criteria
-    if overlap >= 0.45:
+    if overlap >= 0.45 and (not predicate_tokens or pred_overlap >= 0.20):
         return True, overlap
-    if overlap >= 0.30 and (pred_overlap >= 0.35 or has_active_verb):
+    if overlap >= 0.30 and (pred_overlap >= 0.30 or has_active_verb):
         return True, overlap
-    if is_high_auth and overlap >= 0.28 and pred_overlap >= 0.25:
+    if is_high_auth and overlap >= 0.25 and pred_overlap >= 0.20:
         return True, overlap
 
     return False, overlap
@@ -313,7 +321,7 @@ def evaluate_with_llm(
     claim: Dict[str, Any],
     raw_sources: List[Dict[str, Any]],
     api_key: str
-) -> Optional[Tuple[str, str, List[Dict[str, Any]], List[str], str, str]]:
+) -> Optional[Tuple[str, str, List[Dict[str, Any]], List[str], str, str, str, Optional[str], str]]:
     """Evaluates evidence using Gemini with strict forensic fact-checking instructions."""
     if not api_key or not raw_sources:
         return None
@@ -324,7 +332,7 @@ def evaluate_with_llm(
             f"[{idx}] Title: {s.get('title')} | Publisher: {s.get('publisher')} | Excerpt: {s.get('excerpt')}"
         )
 
-    prompt = f"""You are TruthLens AI's forensic fact-checking engine.
+    prompt = f"""You are TruthLens AI's forensic truth analysis and evidence verification engine.
 Evaluate the factual claim against the provided sources.
 
 CLAIM: "{claim.get('claim_text')}"
@@ -335,16 +343,22 @@ SOURCES:
 
 RULES:
 1. For each source, classify as:
-   - "SUPPORTS": Source confirms that the event or statement described in the claim actually occurred or is true.
-   - "CONTRADICTS": Source specifically debunks, refutes, denies, or proves the claim false. (IMPORTANT: News covering crime, fraud, arrests, or controversies does NOT contradict a claim that reports on those events!)
+   - "SUPPORTS": Source confirms that the event, scientific fact, or statement described in the claim actually occurred or is true.
+   - "CONTRADICTS": Source specifically debunks, refutes, denies, or proves the claim false.
    - "CONTEXT": General background information.
-2. Select verdict from: "VERIFIED / SUPPORTED", "FALSE", "MISLEADING", "PARTLY TRUE", "UNVERIFIED", "DISPUTED", "OUTDATED", "OPINION / NOT FACT-CHECKABLE", "SATIRE / NOT INTENDED AS FACT".
-3. NEVER classify genuine news as FALSE. If multiple independent news outlets report the event as factual, it must be "VERIFIED / SUPPORTED".
+2. Select verdict strictly from: "TRUE", "MOSTLY TRUE", "MISLEADING", "MOSTLY FALSE", "FALSE", "UNVERIFIED", "OUTDATED", "OPINION / NOT FACT-CHECKABLE", "SATIRE / NOT INTENDED AS FACT".
+3. Provide:
+   - what_evidence_establishes: Exactly what the evidence proves.
+   - corrected_information: The accurate factual reality if the claim is false, misleading, or outdated.
+   - final_conclusion: Authoritative conclusion.
 
 Output strictly valid JSON with format:
 {{
-  "verdict": "VERIFIED / SUPPORTED | FALSE | MISLEADING | PARTLY TRUE | UNVERIFIED | DISPUTED | OUTDATED",
-  "explanation": "Clear factual explanation answering what was claimed and what research found.",
+  "verdict": "TRUE | MOSTLY TRUE | MISLEADING | MOSTLY FALSE | FALSE | UNVERIFIED | OUTDATED",
+  "explanation": "Clear factual explanation in simple language.",
+  "what_evidence_establishes": "Concise summary of verified empirical facts.",
+  "corrected_information": "Factual correction or null if true.",
+  "final_conclusion": "Authoritative conclusion.",
   "confidence_level": "LOW | MEDIUM | HIGH",
   "research_coverage": "LOW | MEDIUM | HIGH",
   "uncertainties": ["..."],
@@ -365,9 +379,12 @@ Output strictly valid JSON with format:
         parsed = json.loads(llm_output)
         verdict = parsed.get("verdict", "UNVERIFIED")
         if verdict not in VERDICT_DEFINITIONS:
-            verdict = "VERIFIED / SUPPORTED" if "VERIFIED" in verdict or "SUPPORTED" in verdict else "UNVERIFIED"
+            verdict = "TRUE" if "TRUE" in verdict or "VERIFIED" in verdict else "UNVERIFIED"
 
         explanation = parsed.get("explanation", "")
+        what_establishes = parsed.get("what_evidence_establishes", "Analysis of primary and secondary reporting.")
+        corrected_info = parsed.get("corrected_information")
+        conclusion = parsed.get("final_conclusion", explanation[:140])
         conf = parsed.get("confidence_level", "MEDIUM")
         cov = parsed.get("research_coverage", "MEDIUM")
         uncertainties = parsed.get("uncertainties", [])
@@ -378,7 +395,7 @@ Output strictly valid JSON with format:
         for idx, src in enumerate(raw_sources):
             eval_info = eval_map.get(idx, {})
             rel = eval_info.get("evidence_relation", "CONTEXT")
-            rel_exp = eval_info.get("relevance_explanation", "Provides context on the claim.")
+            rel_exp = eval_info.get("relevance_explanation", "Provides contextual reporting on the topic.")
             enriched.append({
                 "title": src.get("title", ""),
                 "publisher": src.get("publisher", "News Source"),
@@ -392,13 +409,40 @@ Output strictly valid JSON with format:
                 "domain_authority_notes": src.get("authority_type", "SECONDARY_SOURCE")
             })
 
-        return verdict, explanation, enriched, uncertainties, conf, cov
+        return verdict, explanation, enriched, uncertainties, conf, cov, what_establishes, corrected_info, conclusion
     except Exception as err:
         print(f"[LLM Parser Error] {err}")
         return None
 
+def classify_knowledge_domain(text: str) -> str:
+    """Classifies a claim or document into one of 10+ knowledge domains using word-bounded regex."""
+    lower_sent = text.lower()
+    if re.search(r"\b(?:ai|artificial intelligence|python|programming|software|coding|algorithm|computer|linux|neural|gpu|cpu|llm|deep learning|machine learning)\b", lower_sent):
+        return "ai_computing"
+    elif re.search(r"\b(?:speed of light|boiling point|water boil|celsius|fahrenheit|photosynthesis|physics|chemistry|biology|quantum|planet|solar|moon|orbit|isro|nasa|space|gravity|earth|वैज्ञानिक|अंतरिक्ष)\b", lower_sent):
+        return "science_tech"
+    elif re.search(r"\b(?:virus|vaccine|who|cancer|health|hospital|doctor|mpox|cure|medicine|nutrition|diet|disease|treatment|pediatric|paracetamol|fever|pneumonia|इलाज|दवा|वैक्सीन)\b", lower_sent):
+        return "health_medical"
+    elif re.search(r"\b(?:independence|war|battle|treaty|century|empire|ancient|dynasty|capital|geography|partition|british rule|1947|1950|gandhi|nehru|history|इतिहास)\b", lower_sent):
+        return "history_geography"
+    elif re.search(r"\b(?:court|judge|supreme court|high court|bail|law|act|section|legal|constitution|article 21|bench|verdict|अदालत|कोर्ट|कानून)\b", lower_sent):
+        return "legal"
+    elif re.search(r"\b(?:rbi|bank|rupee|currency|note|gdp|tax|gst|shares|inflation|economy|recession|repo rate|budget|finance ministry|रुपये|बैंक|नोट)\b", lower_sent):
+        return "economics_business"
+    elif re.search(r"\b(?:scheme|yojana|yojna|subsidy|pension|election|evm|vote|bjp|congress|modi|rahul|parliament|minister|government|union budget|सरकार|चुनाव|मंत्री)\b", lower_sent):
+        return "government_policy"
+    elif re.search(r"\b(?:pollution|carbon|emission|emissions|forest|global warming|sea level|climate change|environment|atmosphere)\b", lower_sent):
+        return "environmental"
+    elif re.search(r"\b(?:protest|summit|breaking|accident|blast|arrest|fired|killed)\b", lower_sent):
+        return "current_events"
+    elif re.search(r"\b(?:college|university|syllabus|cbse|ncert|exam|education|शिक्षा)\b", lower_sent):
+        return "education_academic"
+    elif re.search(r"\b(?:cricket|world cup|olympics|match|fifa|medal|खेल)\b", lower_sent):
+        return "sports"
+    return "general_factual"
+
 def extract_claims_heuristic(text: str, language: str = "en") -> List[Dict[str, Any]]:
-    """Extracts verifiable claims, entities, dates, and categories."""
+    """Extracts verifiable claims, entities, dates, and domain categories across any subject."""
     clean_text = text.strip()
 
     # Check for question/interrogative query
@@ -437,14 +481,12 @@ def extract_claims_heuristic(text: str, language: str = "en") -> List[Dict[str, 
             if w.lower() not in ("the", "this", "that", "there", "then", "when", "what", "where", "with", "from", "news", "viral"):
                 entities.append(w)
 
-        # Robust subject extraction before verb (vital for lowercase queries)
         subj_m = re.match(r"^\s*([a-zA-Z0-9\s\-_]{3,35})\s+(?:is|was|are|became|elected as|launched|declared|kept|won|announced)\b", sentence, re.IGNORECASE)
         if subj_m:
             subj = subj_m.group(1).strip()
             if subj.lower() not in ("the", "this", "that", "there", "when", "what", "who", "it", "they", "we", "he", "she"):
                 entities.append(subj.title())
 
-        # Known institutions and entities
         for org in ["ISRO", "NASA", "RBI", "WHO", "ECI", "Supreme Court", "Chandrayaan", "T20 World Cup"]:
             if org.lower() in sentence.lower():
                 entities.append(org)
@@ -452,18 +494,8 @@ def extract_claims_heuristic(text: str, language: str = "en") -> List[Dict[str, 
         amounts = re.findall(r"(?:₹|Rs\.?|INR|\$|\€)\s*\d+[\d,]*(?:\s*(?:crore|lakh|thousand|million|billion))?", sentence, re.IGNORECASE)
         entities.extend(amounts)
 
-        category = "general"
-        lower_sent = sentence.lower()
-        if any(w in lower_sent for w in ["election", "evm", "vote", "bjp", "congress", "modi", "rahul", "parliament", "minister", "government", "सरकार", "चुनाव", "मंत्री"]):
-            category = "political"
-        elif any(w in lower_sent for w in ["rbi", "bank", "rupee", "currency", "note", "gdp", "tax", "gst", "shares", "रुपये", "बैंक", "नोट"]):
-            category = "financial"
-        elif any(w in lower_sent for w in ["court", "judge", "supreme court", "high court", "bail", "law", "act", "section", "अदालत", "कोर्ट", "कानून"]):
-            category = "legal"
-        elif any(w in lower_sent for w in ["virus", "vaccine", "who", "cancer", "health", "hospital", "doctor", "mpox", "इलाज", "दवा", "वैक्सीन"]):
-            category = "health"
-        elif any(w in lower_sent for w in ["isro", "nasa", "space", "moon", "satellite", "solar", "earth", "climate", "वैज्ञानिक", "अंतरिक्ष"]):
-            category = "scientific"
+        # 10+ Domain Categorization
+        category = classify_knowledge_domain(sentence)
 
         if is_personal_slur or is_opinion:
             verifiability = "SUBJECTIVE_OPINION"
@@ -495,20 +527,23 @@ def evaluate_evidence_and_verdict(
     raw_sources: List[Dict[str, Any]],
     as_of_date: Optional[str] = None,
     api_key: Optional[str] = None
-) -> Tuple[str, str, List[Dict[str, Any]], List[str], str, str]:
+) -> Tuple[str, str, List[Dict[str, Any]], List[str], str, str, str, Optional[str], str]:
     """
-    Evaluates evidence against a claim with high forensic accuracy:
-    - First attempts LLM analysis if an API key is available.
-    - Otherwise applies context-aware stance detection distinguishing targeted refutations from affirmative reporting.
+    Evaluates evidence against a claim with forensic accuracy across all 7 standard categories:
+    TRUE, MOSTLY TRUE, MISLEADING, MOSTLY FALSE, FALSE, UNVERIFIED, OUTDATED.
     """
     claim_text = claim["claim_text"]
     verifiability = claim.get("verifiability", "SPECIFIC_FACTUAL")
+    category = claim.get("category", "general_factual")
     entities = claim.get("entities", [])
 
     if verifiability == "SUBJECTIVE_OPINION":
         verdict = "OPINION / NOT FACT-CHECKABLE"
-        explanation = f"The submitted text ('{claim_text}') contains personal evaluations, slurs, or subjective remarks rather than an empirical factual assertion that can be verified against news archives or public records."
-        return verdict, explanation, [], ["Subjective remarks and interpersonal statements cannot be empirically fact-checked."], "HIGH", "LOW"
+        explanation = f"The statement ('{claim_text}') expresses a subjective value judgment, taste preference, or personal perspective rather than an empirical factual proposition."
+        what_establishes = "Subjective viewpoints and opinions cannot be empirically proven true or false using public records."
+        corrected_info = None
+        conclusion = "Non-empirical assertion: classified as subjective opinion."
+        return verdict, explanation, [], ["Subjective remarks cannot be empirically verified."], "HIGH", "LOW", what_establishes, corrected_info, conclusion
 
     if verifiability == "INTERROGATIVE_QUERY":
         has_fact_checks = any("fact check" in (s.get("title", "") + " " + s.get("excerpt", "")).lower() or "फैक्ट चेक" in (s.get("title", "") + " " + s.get("excerpt", "")).lower() or "पड़ताल" in (s.get("title", "") + " " + s.get("excerpt", "")).lower() for s in raw_sources)
@@ -529,22 +564,34 @@ def evaluate_evidence_and_verdict(
 
         if has_fact_checks:
             verdict = "MISLEADING"
-            explanation = f"Inquiry Context: The submitted question ('{claim_text}') relates to a widely reported controversy or viral clip that has been investigated by independent fact-checkers. Records indicate the viral phrasing stems from clipped or misrepresented remarks. Consult the linked evidence sources below for full verified documentation."
-            return verdict, explanation, enriched_sources, ["Viral political remarks frequently circulate out of context."], "HIGH", "HIGH"
+            explanation = f"Inquiry Context: The question ('{claim_text}') refers to a circulating controversy investigated by independent fact-checkers."
+            what_establishes = "Independent fact-checks have examined the viral subject matter."
+            corrected_info = "Consult linked evidence sources for full verified documentation."
+            conclusion = "Inquiry addresses a known viral controversy with documented corrections."
+            return verdict, explanation, enriched_sources, ["Viral political remarks frequently circulate out of context."], "HIGH", "HIGH", what_establishes, corrected_info, conclusion
         else:
             verdict = "OPINION / NOT FACT-CHECKABLE"
-            explanation = f"The submitted text is an open question or conversational query ('{claim_text}'). TruthLens verifies declarative news and factual assertions. Please rephrase as a factual statement or consult the contextual sources below."
-            return verdict, explanation, enriched_sources, ["Declarative assertions yield higher verification accuracy than open questions."], "MEDIUM", "LOW"
+            explanation = f"The submitted text is an open question ('{claim_text}'). TruthLens verifies declarative factual assertions."
+            what_establishes = "Open questions do not make empirical declarative assertions."
+            corrected_info = None
+            conclusion = "Please rephrase as a factual statement for verification."
+            return verdict, explanation, enriched_sources, ["Declarative assertions yield higher verification accuracy."], "MEDIUM", "LOW", what_establishes, corrected_info, conclusion
 
     if verifiability == "SATIRICAL":
         verdict = "SATIRE / NOT INTENDED AS FACT"
-        explanation = "Contextual evidence indicates the claim originated as a piece of humor, satire, or parody and was not intended as a genuine news report."
-        return verdict, explanation, [], ["Parody content often gets recirculated without original satirical context."], "HIGH", "LOW"
+        explanation = "Contextual evidence indicates the claim originated as humor, satire, or parody and was not intended as factual reporting."
+        what_establishes = "The content was produced by satirical outlets or humor contexts."
+        corrected_info = "Content is satirical in nature and not a genuine factual report."
+        conclusion = "Parody content: not intended as fact."
+        return verdict, explanation, [], ["Satire often gets recirculated without original comedic context."], "HIGH", "LOW", what_establishes, corrected_info, conclusion
 
     if not raw_sources:
         verdict = "UNVERIFIED"
-        explanation = "Available evidence is insufficient to establish whether the claim is true or false. No authoritative reports or primary documents corroborating or disproving the claim were found in the examined databases. Note: An unverified status does not indicate the claim is false, but rather that evidence is currently lacking."
-        return verdict, explanation, [], ["Absence of verified records in search index", "Independent corroboration not available"], "LOW", "LOW"
+        explanation = "Available evidence is insufficient to reach a reliable conclusion. No authoritative reports, primary documents, or independent records corroborating or disproving the assertion were found in public indices. Note: An unverified status indicates that evidence is currently lacking, not that the claim is proven false."
+        what_establishes = "No authoritative documentation located in public indices."
+        corrected_info = None
+        conclusion = "Unverified: insufficient public documentation."
+        return verdict, explanation, [], ["Absence of verified records in search index", "Independent corroboration not available"], "LOW", "LOW", what_establishes, corrected_info, conclusion
 
     # Try LLM evaluation if API key is provided
     active_key = api_key or GEMINI_API_KEY
@@ -553,10 +600,12 @@ def evaluate_evidence_and_verdict(
         if llm_res:
             return llm_res
 
-    # Enhanced Semantic Heuristic Evaluation
+    # Semantic Heuristic Evaluation
     outdated_signals = [
         "discontinued", "withdrawn", "old circular", "dated back", "in 2016", "in 2017",
-        "no longer valid", "superseded", "withdrawn by rbi", "पुराना नियम", "वापस लिया"
+        "no longer valid", "superseded", "reclassified", "dwarf planet", "no longer a planet",
+        "no longer considered", "no longer active", "former classification", "demoted to dwarf planet",
+        "withdrawn by rbi", "पुराना नियम", "वापस लिया"
     ]
 
     supports_count = 0
@@ -591,23 +640,23 @@ def evaluate_evidence_and_verdict(
                 context_count += 1
         else:
             is_refuted = check_targeted_refutation(claim_text, title, excerpt)
-            is_supported, overlap = check_corroboration(claim_text, entities, title, excerpt, publisher, auth_type)
             is_outdated = any(sig in (title + " " + excerpt).lower() for sig in outdated_signals)
+            is_supported, overlap = check_corroboration(claim_text, entities, title, excerpt, publisher, auth_type)
 
             if is_refuted:
                 rel = "CONTRADICTS"
                 relevance_exp = f"{publisher} explicitly investigates and refutes the assertion as factually unsubstantiated or debunked."
                 contradicts_count += 1
-            elif is_supported:
-                rel = "SUPPORTS"
-                relevance_exp = f"Independent reporting from {publisher} directly corroborates the key event, entities, and actions described in the claim."
-                supports_count += 1
-                if auth_type in ("GOVERNMENT_PRIMARY", "CONSTITUTIONAL_PRIMARY", "INTERNATIONAL_HEALTH_AUTHORITY", "GLOBAL_NEWS_WIRE", "ESTABLISHED_NEWS_ORGANIZATION", "PRIMARY_REFERENCE"):
-                    high_auth_supports += 1
             elif is_outdated:
                 rel = "CONTEXT"
-                relevance_exp = "Indicates that the event or notice relates to a past policy or historical event that may no longer be active."
+                relevance_exp = "Indicates that the event, notice, or classification relates to a past policy or historical status that is no longer active."
                 outdated_count += 1
+            elif is_supported:
+                rel = "SUPPORTS"
+                relevance_exp = f"Authoritative documentation from {publisher} directly corroborates the key event, entities, and actions described in the assertion."
+                supports_count += 1
+                if auth_type in ("GOVERNMENT_PRIMARY", "CONSTITUTIONAL_PRIMARY", "INTERNATIONAL_HEALTH_AUTHORITY", "GLOBAL_NEWS_WIRE", "ESTABLISHED_NEWS_ORGANIZATION", "PRIMARY_REFERENCE", "CERTIFIED_FACT_CHECKER"):
+                    high_auth_supports += 1
             else:
                 rel = "CONTEXT"
                 relevance_exp = "Provides background context and related reporting on the subject."
@@ -628,7 +677,6 @@ def evaluate_evidence_and_verdict(
 
     uncertainties = []
 
-    # Accurate, evidence-based verdict determination
     authoritative_types = (
         "CERTIFIED_FACT_CHECKER", "PRIMARY_REFERENCE", "GOVERNMENT_PRIMARY",
         "CONSTITUTIONAL_PRIMARY", "INTERNATIONAL_HEALTH_AUTHORITY",
@@ -637,61 +685,86 @@ def evaluate_evidence_and_verdict(
 
     has_authoritative_contra = any(
         s.get("evidence_relation") == "CONTRADICTS" and 
-        (s.get("domain_authority_notes") in authoritative_types or "affirms" in s.get("relevance_explanation", "").lower() or "opposition" in s.get("relevance_explanation", "").lower())
+        (s.get("domain_authority_notes") in authoritative_types or "refutes" in s.get("relevance_explanation", "").lower())
         for s in enriched_sources
     )
 
+    # High caution for health & medical assertions
+    if category == "health_medical" and supports_count > 0 and high_auth_supports == 0:
+        uncertainties.append("Medical assertions require verification from certified health authorities or peer-reviewed literature.")
+
+    # Core Verdict Assignment across 7 Standard Categories
     if contradicts_count >= 1 and supports_count == 0:
         verdict = "FALSE"
-        explanation = "Reliable evidence from established fact-checking organizations, official public records, or constitutional documentation directly contradicts the claim. Independent investigation confirmed the assertion to be baseless, incorrect, or a circulating hoax."
+        explanation = "Reliable evidence from established fact-checking organizations, official public records, or primary documentation directly contradicts the claim. Independent investigation confirmed the assertion to be baseless, incorrect, or a circulating hoax."
+        what_evidence_establishes = "Official records and investigative findings prove the claimed event, order, or figure does not exist."
+        corrected_info = "Consult the cited official sources for verified documentation disproving the viral assertion."
+        conclusion = "The claim is demonstrably false and contradicted by reliable evidence."
         uncertainties.append("Potential localized variations of the viral message may still circulate on messaging platforms.")
+
     elif contradicts_count >= 1 and supports_count == 1:
-        # Decisive contradiction from certified fact checker overrides incidental single match
         if high_auth_supports == 0 or has_authoritative_contra:
             verdict = "FALSE"
-            explanation = "Authoritative public records and independent reporting directly contradict the claim. Incidental token mentions in secondary sources do not substantiate the claim against clear refuting evidence."
-            uncertainties.append("Residual ambiguity in secondary news phrasing.")
+            explanation = "Authoritative public records and independent reporting directly contradict the claim. Incidental token mentions in secondary sources do not substantiate the assertion against clear refuting evidence."
+            what_evidence_establishes = "Authoritative sources explicitly refute the claim; secondary mentions reflect generic topic overlap."
+            corrected_info = "Primary records confirm the assertion is inaccurate."
+            conclusion = "The claim is false based on authoritative refutations."
         else:
-            verdict = "DISPUTED"
-            explanation = "Credible sources report conflicting findings or different facets of the situation. A single definitive conclusion cannot be confirmed at this time."
-            uncertainties.append("Discrepancy between early reports and subsequent official clarifications.")
-    elif contradicts_count >= 2 and high_auth_supports == 0 and has_authoritative_contra:
-        # Multiple authoritative debunks completely override non-authoritative mentions
-        verdict = "FALSE"
-        explanation = "Multiple authoritative news organizations and official records have explicitly debunked the core claim. Incidental secondary mentions do not substantiate the assertion against clear refuting evidence."
-        uncertainties.append("Viral claims frequently recirculate on social media despite official debunkings.")
+            verdict = "MOSTLY FALSE"
+            explanation = "Core aspects of the assertion are contradicted by credible reports, though minor secondary details or underlying entities exist."
+            what_evidence_establishes = "The central premise is unsubstantiated or debunked, despite tangential true elements."
+            corrected_info = "Important parts of the claim are incorrect."
+            conclusion = "Mostly false: central claim is contradicted."
+            uncertainties.append("Discrepancy between early secondary mentions and primary refutations.")
+
     elif contradicts_count >= 1 and supports_count >= 2:
-        verdict = "PARTLY TRUE"
-        explanation = "The core event is corroborated by major news reports, but certain viral embellishments or claims were specifically debunked or clarified."
+        verdict = "MISLEADING"
+        explanation = "The statement contains elements of truth regarding the core event, but omits essential context, exaggerates figures, or presents details deceptively."
+        what_evidence_establishes = "The underlying event or entities are real, but key viral claims or attributions are distorted."
+        corrected_info = "Factual reporting confirms the base event, but contradicts the sensationalized spin or misattributions."
+        conclusion = "The claim is misleading: factual elements are framed deceptively."
         uncertainties.append("Distinction between core facts and secondary embellishments.")
-    elif contradicts_count == 1 and supports_count == 1:
-        verdict = "DISPUTED"
-        explanation = "Credible sources report conflicting findings or different facets of the situation. A single definitive conclusion cannot be confirmed at this time."
-        uncertainties.append("Discrepancy between early reports and subsequent official clarifications.")
+
     elif supports_count >= 2 and contradicts_count == 0:
-        verdict = "VERIFIED / SUPPORTED"
-        explanation = "Multiple independent and credible news organizations and official statements corroborate the factual claim with consistent reporting."
-        uncertainties.append("Ongoing operational or situational updates may evolve over time.")
+        verdict = "TRUE"
+        explanation = "Multiple independent and authoritative sources, official documentation, or encyclopedic records corroborate the factual assertion with consistent reporting."
+        what_evidence_establishes = "Consulted authoritative repositories substantiate the occurrence, dates, entities, and statements described."
+        corrected_info = None
+        conclusion = "The claim is true and substantiated by reliable documentation."
+
     elif supports_count == 1 and high_auth_supports >= 1 and contradicts_count == 0:
-        verdict = "VERIFIED / SUPPORTED"
-        explanation = "Primary documentation from an official authority, global news wire, or encyclopedic record corroborates the factual claim."
-        uncertainties.append("Ongoing situational updates may evolve over time.")
+        verdict = "TRUE"
+        explanation = "Primary documentation from an official authority, global news wire, or encyclopedic reference record directly corroborates the factual claim."
+        what_evidence_establishes = "Primary reference documentation verifies the factual details."
+        corrected_info = None
+        conclusion = "The claim is true according to primary reference records."
+
     elif supports_count >= 1 and contradicts_count == 0:
-        verdict = "VERIFIED / SUPPORTED"
-        explanation = "Available reporting from credible news sources supports the factual claim without observed contradictions."
-        uncertainties.append("Secondary reporting examined; direct primary documentation may be limited.")
+        verdict = "MOSTLY TRUE"
+        explanation = "Available reporting from credible sources supports the central assertion, though broader primary triangulation is limited."
+        what_evidence_establishes = "Credible secondary reporting corroborates the central claim."
+        corrected_info = None
+        conclusion = "Mostly true: supported by available reporting."
+        uncertainties.append("Secondary reporting examined; direct primary archival documentation may be limited.")
+
     elif outdated_count > 0:
         verdict = "OUTDATED"
-        explanation = "The claim refers to a circumstance or policy that was valid in the past but is no longer current."
-        uncertainties.append("Exact date when the policy or status changed.")
+        explanation = "The assertion was historically accurate at a past time, but is no longer valid under current conditions, updated scientific consensus, or revised policies."
+        what_evidence_establishes = "The statement corresponds to a previous rule, classification, or policy that has since been superseded."
+        corrected_info = "The policy or scientific classification has been updated and no longer reflects the stated claim."
+        conclusion = "The claim is outdated."
+        uncertainties.append("Exact date or regulatory order that updated the status.")
+
     else:
-        # Neither support nor contradiction established: UNVERIFIED (never 'PARTLY TRUE' without supporting evidence!)
         verdict = "UNVERIFIED"
-        explanation = "Available evidence is insufficient to decisively verify or falsify the exact claim. While general background topics were retrieved, direct independent corroboration is absent."
+        explanation = "Available evidence is insufficient to reach a reliable conclusion. While general background documents were retrieved, direct independent corroboration or refutation was not established. Note: An unverified status does not indicate the claim is false, but rather that evidence is currently lacking."
+        what_evidence_establishes = "Search indices returned general topical context, but lack specific confirmation or refutation."
+        corrected_info = None
+        conclusion = "Unverified: insufficient public documentation."
         uncertainties.append("Limited independent corroboration available in public repositories.")
 
     # Confidence and Coverage Calculation
-    if len(raw_sources) >= 5:
+    if len(raw_sources) >= 4:
         research_coverage = "HIGH"
     elif len(raw_sources) >= 2:
         research_coverage = "MEDIUM"
@@ -700,14 +773,14 @@ def evaluate_evidence_and_verdict(
 
     has_primary = any(s.get("domain_authority_notes") in authoritative_types for s in enriched_sources)
 
-    if (contradicts_count >= 2 or supports_count >= 2) and has_primary:
+    if ((contradicts_count >= 1 or supports_count >= 1) and has_primary) or contradicts_count >= 2 or supports_count >= 2 or high_auth_supports >= 1:
         confidence_level = "HIGH"
     elif contradicts_count >= 1 or supports_count >= 1 or len(raw_sources) >= 3:
         confidence_level = "MEDIUM"
     else:
         confidence_level = "LOW"
 
-    return verdict, explanation, enriched_sources, uncertainties, confidence_level, research_coverage
+    return verdict, explanation, enriched_sources, uncertainties, confidence_level, research_coverage, what_evidence_establishes, corrected_info, conclusion
 
 def synthesize_source_comparison(sources: List[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
     """Generates a side-by-side comparison of primary sources consulted."""

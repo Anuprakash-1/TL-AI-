@@ -1,16 +1,20 @@
 from typing import List, Optional, Literal
 from pydantic import BaseModel, Field
 
-# 9 Standard Verdicts
+# Core Verdict Categories (Section 3 Standard)
 VerdictType = Literal[
-    "VERIFIED / SUPPORTED",
-    "FALSE",
+    "TRUE",
+    "MOSTLY TRUE",
     "MISLEADING",
-    "PARTLY TRUE",
+    "MOSTLY FALSE",
+    "FALSE",
     "UNVERIFIED",
     "OUTDATED",
-    "SATIRE / NOT INTENDED AS FACT",
     "OPINION / NOT FACT-CHECKABLE",
+    "SATIRE / NOT INTENDED AS FACT",
+    # Backward compatibility aliases
+    "VERIFIED / SUPPORTED",
+    "PARTLY TRUE",
     "DISPUTED"
 ]
 
@@ -20,8 +24,8 @@ EvidenceRelation = Literal["SUPPORTS", "CONTRADICTS", "CONTEXT"]
 AccessibilityStatus = Literal["ACCESSIBLE", "PARTIAL", "INACCESSIBLE"]
 
 class VerifyRequest(BaseModel):
-    text: Optional[str] = Field(default=None, description="User-submitted news or factual claim")
-    url: Optional[str] = Field(default=None, description="URL of the news article to verify")
+    text: Optional[str] = Field(default=None, description="User-submitted statement, claim, news, science, history, or post")
+    url: Optional[str] = Field(default=None, description="URL of the web article to verify")
     language: Optional[str] = Field(default="auto", description="Claim language ('en', 'hi', or 'auto')")
     country: Optional[str] = Field(default="IN", description="Country context (e.g. 'IN', 'US', 'GLOBAL')")
     as_of_date: Optional[str] = Field(default=None, description="Historical reference date (YYYY-MM-DD)")
@@ -42,13 +46,15 @@ class EvidenceSource(BaseModel):
 class ExtractedClaim(BaseModel):
     claim_id: str = Field(description="Unique identifier for the claim (e.g. claim-1)")
     claim_text: str = Field(description="Exact factual claim being checked")
-    entities: List[str] = Field(default_factory=list, description="People, organizations, locations, events")
+    entities: List[str] = Field(default_factory=list, description="People, organizations, locations, events, or scientific concepts")
     time_period: Optional[str] = Field(default=None, description="Relevant dates or time periods")
-    category: str = Field(default="general", description="Category: political, scientific, historical, financial, health, legal")
-    verifiability: str = Field(default="SPECIFIC_FACTUAL", description="SPECIFIC_FACTUAL, BROAD_FACTUAL, SUBJECTIVE_OPINION, SATIRE")
+    category: str = Field(default="general_factual", description="Category: science_tech, ai_computing, history_geography, government_policy, health_medical, economics_business, environmental, current_events, general_factual")
+    verifiability: str = Field(default="SPECIFIC_FACTUAL", description="SPECIFIC_FACTUAL, BROAD_FACTUAL, SUBJECTIVE_OPINION, SATIRE, INTERROGATIVE_QUERY")
     verdict: VerdictType = Field(description="Assigned verdict for this specific claim")
     verdict_definition: str = Field(description="Precise formal definition of this verdict")
     explanation: str = Field(description="Evidence-based explanation of the verdict")
+    what_evidence_establishes: Optional[str] = Field(default=None, description="What the available evidence actually proves")
+    corrected_information: Optional[str] = Field(default=None, description="Factual correction when the claim is false, mostly false, misleading, or outdated")
     supporting_evidence_indices: List[int] = Field(default_factory=list)
     contradicting_evidence_indices: List[int] = Field(default_factory=list)
     context_evidence_indices: List[int] = Field(default_factory=list)
@@ -65,7 +71,7 @@ class SourceComparison(BaseModel):
 
 class VerificationMethod(BaseModel):
     search_queries: List[str] = Field(default_factory=list, description="Exact search queries executed")
-    source_types: List[str] = Field(default_factory=list, description="Types of sources consulted (PIB, court, news, etc.)")
+    source_types: List[str] = Field(default_factory=list, description="Types of sources consulted (PIB, court, news, academic, etc.)")
     date_ranges: str = Field(description="Time window covered by the research")
     evaluation_criteria: List[str] = Field(default_factory=list, description="Factors used to evaluate evidence")
     important_limitations: List[str] = Field(default_factory=list, description="Methodological limitations of this check")
@@ -81,6 +87,9 @@ class VerifyResponse(BaseModel):
     verdict: VerdictType
     verdict_definition: str
     explanation: str
+    what_evidence_establishes: Optional[str] = Field(default=None, description="What the empirical evidence actually establishes")
+    corrected_information: Optional[str] = Field(default=None, description="Corrected or more accurate information supported by evidence")
+    final_conclusion: Optional[str] = Field(default=None, description="Final authoritative synthesis of the evidence-based analysis")
     evidence_sources: List[EvidenceSource]
     source_comparison: Optional[SourceComparison] = None
     verification_method: VerificationMethod

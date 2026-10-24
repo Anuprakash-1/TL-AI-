@@ -9,11 +9,13 @@ from ddgs import DDGS
 from config import USER_AGENT, REQUEST_TIMEOUT_SECONDS
 
 KNOWN_PRIMARY_DOMAINS = {
-    # Official Government & Constitutional
+    # Official Government & Constitutional Bodies
     "pib.gov.in": ("Press Information Bureau (Government of India)", "GOVERNMENT_PRIMARY"),
     "eci.gov.in": ("Election Commission of India", "CONSTITUTIONAL_PRIMARY"),
     "sci.gov.in": ("Supreme Court of India", "JUDICIAL_PRIMARY"),
     "who.int": ("World Health Organization", "INTERNATIONAL_HEALTH_AUTHORITY"),
+    "cdc.gov": ("Centers for Disease Control and Prevention", "INTERNATIONAL_HEALTH_AUTHORITY"),
+    "nih.gov": ("National Institutes of Health", "INTERNATIONAL_HEALTH_AUTHORITY"),
     "un.org": ("United Nations", "INTERNATIONAL_HEALTH_AUTHORITY"),
     "unesco.org": ("UNESCO Official", "GOVERNMENT_PRIMARY"),
     "worldbank.org": ("World Bank Official", "GOVERNMENT_PRIMARY"),
@@ -21,6 +23,14 @@ KNOWN_PRIMARY_DOMAINS = {
     "nasa.gov": ("NASA Official", "GOVERNMENT_PRIMARY"),
     "rbi.org.in": ("Reserve Bank of India", "GOVERNMENT_PRIMARY"),
     "newsonair.gov.in": ("Prasar Bharati / All India Radio", "GOVERNMENT_PRIMARY"),
+
+    # Scientific, Academic & Encyclopedic References
+    "wikipedia.org": ("Wikipedia Encyclopedic Record", "PRIMARY_REFERENCE"),
+    "britannica.com": ("Encyclopaedia Britannica", "PRIMARY_REFERENCE"),
+    "nature.com": ("Nature Scientific Journal", "PRIMARY_REFERENCE"),
+    "science.org": ("Science Journal (AAAS)", "PRIMARY_REFERENCE"),
+    "pubmed.ncbi.nlm.nih.gov": ("PubMed Central / National Library of Medicine", "PRIMARY_REFERENCE"),
+    "arxiv.org": ("arXiv Scientific Repository", "PRIMARY_REFERENCE"),
 
     # Global News Wires
     "reuters.com": ("Reuters International News Agency", "GLOBAL_NEWS_WIRE"),
@@ -105,11 +115,11 @@ def identify_publisher_and_authority(url: str, title: str, source_name: str = ""
         if domain.endswith(".gov.in") or domain.endswith(".nic.in") or domain.endswith(".gov") or domain.endswith(".mil"):
             return source_name or domain.upper(), "GOVERNMENT_PRIMARY"
 
-        # 4. Institutional & official agencies
+        # 4. Institutional, scientific & official agencies
         gov_inst_keywords = [
             "pib", "press information bureau", "news on air", "prasar bharati",
             "who", "isro", "nasa", "rbi", "supreme court", "election commission",
-            "unesco", "world bank"
+            "unesco", "world bank", "nih", "cdc", "icmr"
         ]
         if any(g in pub_lower for g in gov_inst_keywords):
             return source_name or "Official Institutional Body", "GOVERNMENT_PRIMARY"
@@ -264,11 +274,8 @@ def search_web_multi_angle(
     country: str = "IN"
 ) -> Dict[str, Any]:
     """
-    Executes a comprehensive multi-angle real web search concurrently for a factual claim.
-    Formulates queries for:
-    1. Fact-check specific query ("claim keywords + fact check / फैक्ट चेक") to detect debunks.
-    2. Direct core keywords query to gather affirmative reporting.
-    3. Official authority / entity query.
+    Executes a comprehensive multi-angle real web search concurrently for any factual claim,
+    spanning news, science & tech, history, health/medical, economics, and general knowledge.
     """
     entities = entities or []
     queries = []
@@ -287,56 +294,80 @@ def search_web_multi_angle(
     meaningful_words = [w for w in words if w.lower() not in STOP_WORDS and w.lower() not in question_words]
     key_phrase = " ".join(meaningful_words[:5]) if meaningful_words else " ".join(words[:5])
 
-    # Angle 1: Always include Fact-Check query to detect hoaxes, scams, and debunks
+    lower_claim = claim_clean.lower()
+
+    # Detect domain signals
+    is_scientific = any(w in lower_claim for w in ["speed of light", "boiling point", "photosynthesis", "cell", "quantum", "gravity", "planet", "solar", "moon", "orbit", "dna", "atom", "molecule", "temperature", "physics", "chemistry", "biology"])
+    is_medical = any(w in lower_claim for w in ["vaccine", "cure", "cancer", "diabetes", "virus", "infection", "medicine", "doctor", "hospital", "who", "covid", "symptom", "disease", "treatment"])
+    is_historical = any(w in lower_claim for w in ["independence", "war", "battle", "treaty", "century", "empire", "king", "queen", "ancient", "dynasty", "19", "18", "17", "partition"])
+    is_tech = any(w in lower_claim for w in ["python", "programming", "software", "artificial intelligence", "ai", "model", "algorithm", "cpu", "gpu", "chip", "computer", "linux", "database"])
+
+    # Query 1: Direct core key phrase (primary for general facts and news)
+    queries.append(key_phrase)
+
+    # Query 2: Fact-Check angle (vital for catching hoaxes and debunks)
     if language == "hi":
         queries.append(f"{key_phrase} फैक्ट चेक")
     else:
         queries.append(f"{key_phrase} fact check")
 
-    # Angle 2: Direct core keywords query
-    queries.append(key_phrase)
-
-    # Angle 3: Entity or institutional verification query
-    lower_claim = claim_clean.lower()
-    if any(w in lower_claim for w in ["who", "health organization", "mpox", "covid", "vaccine"]):
-        queries.append(f"{key_phrase} WHO official")
-    elif any(w in lower_claim for w in ["isro", "chandrayaan", "space", "satellite", "gaganyaan"]):
+    # Query 3: Domain-tailored corroboration query
+    if is_medical:
+        queries.append(f"{key_phrase} medical consensus study WHO")
+    elif is_scientific:
+        queries.append(f"{key_phrase} science definition research")
+    elif is_tech:
+        queries.append(f"{key_phrase} documentation official")
+    elif is_historical:
+        queries.append(f"{key_phrase} history records date")
+    elif any(w in lower_claim for w in ["isro", "chandrayaan", "space", "satellite"]):
         queries.append(f"{key_phrase} ISRO official")
     elif any(w in lower_claim for w in ["unesco"]):
         queries.append(f"{key_phrase} UNESCO official")
-    elif any(w in lower_claim for w in ["world bank", "gdp"]):
+    elif any(w in lower_claim for w in ["world bank", "gdp", "economy"]):
         queries.append(f"{key_phrase} World Bank report")
-    elif any(w in lower_claim for w in ["rbi", "repo rate", "currency", "bank", "2000 note", "reserve bank"]):
+    elif any(w in lower_claim for w in ["rbi", "repo rate", "currency", "bank", "2000 note"]):
         queries.append(f"{key_phrase} RBI official notification")
-    elif any(w in lower_claim for w in ["scheme", "yojana", "yojna", "subsidy", "pension", "recharge", "free"]):
+    elif any(w in lower_claim for w in ["scheme", "yojana", "yojna", "subsidy", "recharge", "free"]):
         queries.append(f"{key_phrase} PIB official")
     elif any(w in lower_claim for w in ["supreme court", "high court", "bail", "verdict", "judge", "cji"]):
         queries.append(f"{key_phrase} Supreme Court of India verdict")
-    elif any(w in lower_claim for w in ["election", "evm", "vote", "voter"]):
-        queries.append(f"{key_phrase} Election Commission of India official")
     elif len(meaningful_words) > 2:
         queries.append(" ".join(meaningful_words[:3]))
 
     # Deduplicate queries (max 3)
     unique_queries = list(dict.fromkeys(queries))[:3]
 
-    # Target entities for encyclopedic Wikipedia reference
+    # Target entities / concepts for encyclopedic Wikipedia reference
     wiki_targets = []
     if entities:
         for ent in entities:
             if not re.search(r"^(?:₹|\$|\d|in\b|the\b)", ent, re.IGNORECASE) and len(ent) >= 3:
                 wiki_targets.append(ent)
 
-    lower_c = claim_clean.lower()
-    if "prime minister" in lower_c or "pm of india" in lower_c:
+    # Identify compound noun phrases or key topics for Wikipedia lookup
+    for topic_match in re.findall(r"\b[A-Z][a-zA-Z0-9_\-\.]{2,}(?:\s+[A-Z][a-zA-Z0-9_\-\.]{2,})*\b", claim_text):
+        if topic_match.lower() not in ("the", "this", "that", "there", "when", "what", "where", "with", "from", "news", "viral"):
+            wiki_targets.append(topic_match)
+
+    # Specific topic recognizers
+    if is_scientific or is_historical or is_tech:
+        # Add top 2 meaningful words as candidate Wikipedia topic
+        if len(meaningful_words) >= 2:
+            wiki_targets.append(" ".join(meaningful_words[:2]))
+        elif len(meaningful_words) == 1:
+            wiki_targets.append(meaningful_words[0])
+
+    # Check for constitutional or institutional office in claim
+    if "prime minister" in lower_claim or "pm of india" in lower_claim:
         wiki_targets.append("Prime Minister of India")
-    if "chief minister" in lower_c or "cm of uttar pradesh" in lower_c or "cm of up" in lower_c:
+    if "chief minister" in lower_claim or "cm of uttar pradesh" in lower_claim:
         wiki_targets.append("Chief Minister of Uttar Pradesh")
-    if "supreme court" in lower_c or "cji" in lower_c or "chief justice" in lower_c:
+    if "supreme court" in lower_claim or "cji" in lower_claim:
         wiki_targets.append("Supreme Court of India")
-    if "isro" in lower_c or "chandrayaan" in lower_c:
+    if "isro" in lower_claim or "chandrayaan" in lower_claim:
         wiki_targets.append("ISRO")
-    if "rbi" in lower_c or "reserve bank" in lower_c:
+    if "rbi" in lower_claim or "reserve bank" in lower_claim:
         wiki_targets.append("Reserve Bank of India")
 
     deduped_wiki_targets = list(dict.fromkeys(wiki_targets))[:2]
@@ -366,15 +397,15 @@ def search_web_multi_angle(
             except Exception as e:
                 print(f"[Search-Worker] Handled exception: {e}")
 
-    # Prioritize CERTIFIED_FACT_CHECKER and GOVERNMENT_PRIMARY sources first
+    # Prioritize authoritative sources first
     priority_order = {
         "CERTIFIED_FACT_CHECKER": 0,
         "GOVERNMENT_PRIMARY": 1,
         "CONSTITUTIONAL_PRIMARY": 2,
-        "INTERNATIONAL_HEALTH_AUTHORITY": 3,
-        "GLOBAL_NEWS_WIRE": 4,
-        "ESTABLISHED_NEWS_ORGANIZATION": 5,
-        "PRIMARY_REFERENCE": 6,
+        "PRIMARY_REFERENCE": 3,
+        "INTERNATIONAL_HEALTH_AUTHORITY": 4,
+        "GLOBAL_NEWS_WIRE": 5,
+        "ESTABLISHED_NEWS_ORGANIZATION": 6,
         "SECONDARY_NEWS_OUTLET": 7,
         "SECONDARY_SOURCE": 8
     }
