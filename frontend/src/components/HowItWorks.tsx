@@ -18,6 +18,7 @@ export const HowItWorks: React.FC<HowItWorksProps> = ({ lang }) => {
           ? 'Parses articles into discrete empirical assertions, identifying individuals, institutions, locations, and timeframes.'
           : 'पूरे लेख या संदेश से व्यक्तियों, तिथियों व संस्थानों से जुड़े वास्तविक तथ्यात्मक दावों की पहचान।',
       icon: FileSearch,
+      accent: 'text-amber-400',
     },
     {
       num: '02',
@@ -27,6 +28,7 @@ export const HowItWorks: React.FC<HowItWorksProps> = ({ lang }) => {
           ? 'Formulates multi-angle search queries across Google News RSS, DDGS, and official government archives (PIB, ECI, Courts). Never fabricated.'
           : 'सर्च इंडेक्स और सरकारी अभिलेखागारों (PIB, सुप्रीम कोर्ट, चुनाव आयोग) में वास्तविक लाइव खोज।',
       icon: Search,
+      accent: 'text-teal-400',
     },
     {
       num: '03',
@@ -36,6 +38,7 @@ export const HowItWorks: React.FC<HowItWorksProps> = ({ lang }) => {
           ? 'Distinguishes primary documentation and certified fact-checkers from wire syndication echo chambers.'
           : 'प्राथमिक दस्तावेजों तथा IFCN प्रमाणित तथ्य-जांचकों की पहचान कर उनकी साख की जांच।',
       icon: ShieldCheck,
+      accent: 'text-emerald-400',
     },
     {
       num: '04',
@@ -45,6 +48,7 @@ export const HowItWorks: React.FC<HowItWorksProps> = ({ lang }) => {
           ? 'Extracts verbatim quotations and classifies relation as Supports, Contradicts, or Context against the exact claim.'
           : 'प्रत्येक स्रोत से सीधे उद्धरण लेकर यह तय करना कि साक्ष्य दावे का समर्थन करता है, खंडन करता है या केवल संदर्भ देता है।',
       icon: Scale,
+      accent: 'text-amber-400',
     },
     {
       num: '05',
@@ -54,6 +58,7 @@ export const HowItWorks: React.FC<HowItWorksProps> = ({ lang }) => {
           ? 'Assigns rigorous verdicts (Verified, False, Misleading, Partly True, Outdated, Disputed, Unverified, Satire, Opinion).'
           : 'पारदर्शी व निष्पक्ष 9-श्रेणी निष्कर्षों में से उचित वर्गीकरण। साक्ष्य अधूरा होने पर जबरन निष्कर्ष नहीं थोपा जाता।',
       icon: CheckCircle,
+      accent: 'text-emerald-400',
     },
     {
       num: '06',
@@ -63,6 +68,7 @@ export const HowItWorks: React.FC<HowItWorksProps> = ({ lang }) => {
           ? 'Discloses what remains unverified, search queries formulated, and explicit methodological limits. No fake certainty.'
           : 'सत्यापन में क्या अज्ञात रह गया, उसकी स्पष्ट व पारदर्शी जानकारी। कोई बनावटी स्कोर या प्रतिशत नहीं।',
       icon: HelpCircle,
+      accent: 'text-teal-300',
     },
   ];
 
@@ -70,7 +76,7 @@ export const HowItWorks: React.FC<HowItWorksProps> = ({ lang }) => {
     <section className="w-full max-w-6xl mx-auto px-4 py-12 select-none">
       <div className="relative mb-10 flex items-end justify-between border-b border-white/10 pb-4">
         <div>
-          <span className="text-xs uppercase font-mono tracking-widest text-white/40 block mb-1">
+          <span className="text-xs uppercase font-mono tracking-widest text-emerald-400/90 font-bold block mb-1">
             Autonomous Pipeline Architecture
           </span>
           <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
@@ -88,18 +94,18 @@ export const HowItWorks: React.FC<HowItWorksProps> = ({ lang }) => {
           return (
             <div
               key={step.num}
-              className="p-6 rounded-2xl bg-neutral-900/60 dark:bg-black/60 backdrop-blur-xl border border-white/10 hover:border-white/25 shadow-xl space-y-3 relative overflow-hidden transition-all duration-300 group"
+              className="p-6 rounded-2xl bg-black/60 dark:bg-black/75 backdrop-blur-xl border border-white/10 hover:border-emerald-500/30 shadow-xl space-y-3 relative overflow-hidden transition-all duration-300 group"
             >
               <div className="flex items-center justify-between">
-                <span className="text-xs font-mono font-bold text-white/40 group-hover:text-white transition-colors">
+                <span className="text-xs font-mono font-bold text-white/40 group-hover:text-amber-400 transition-colors">
                   PHASE // {step.num}
                 </span>
-                <div className="w-9 h-9 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-white/80 group-hover:text-white group-hover:bg-white/10 transition-colors">
+                <div className={`w-9 h-9 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center ${step.accent} group-hover:scale-110 transition-transform`}>
                   <Icon className="w-4 h-4" />
                 </div>
               </div>
 
-              <h3 className="text-base sm:text-lg font-bold text-white group-hover:text-cyan-300 transition-colors">
+              <h3 className="text-base sm:text-lg font-bold text-white group-hover:text-emerald-300 transition-colors">
                 {step.title}
               </h3>
 

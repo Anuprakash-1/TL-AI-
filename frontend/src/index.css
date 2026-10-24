@@ -240,6 +240,58 @@
   animation: auroraFloat3 20s ease-in-out infinite;
 }
 
+
+/* =========================================================================
+   SRTP ABSTRACT BACKGROUND 32 - CHROMATIC FLUID TORUS & AURA KEYFRAMES
+   ========================================================================= */
+
+@keyframes srtpTorusRotate {
+  0% {
+    transform: rotate(0deg) scale(1);
+  }
+  50% {
+    transform: rotate(180deg) scale(1.03);
+  }
+  100% {
+    transform: rotate(360deg) scale(1);
+  }
+}
+
+@keyframes srtpAuraBreathe {
+  0%, 100% {
+    opacity: 0.7;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.95;
+    transform: scale(1.05);
+  }
+}
+
+@keyframes srtpFluidDrift {
+  0%, 100% {
+    transform: translate(0px, 0px);
+  }
+  33% {
+    transform: translate(20px, -15px);
+  }
+  66% {
+    transform: translate(-15px, 18px);
+  }
+}
+
+.animate-srtp-torus {
+  animation: srtpTorusRotate 32s linear infinite;
+}
+
+.animate-srtp-aura {
+  animation: srtpAuraBreathe 7s ease-in-out infinite;
+}
+
+.animate-srtp-drift {
+  animation: srtpFluidDrift 15s ease-in-out infinite;
+}
+
 /* Reduced Motion Accessibility Override */
 @media (prefers-reduced-motion: reduce) {
   .animate-radar-sweep,

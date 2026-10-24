@@ -16,31 +16,29 @@ interface Particle {
 
 export const AnimatedBackground: React.FC<AnimatedBackgroundProps> = ({ isDark }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const [mousePos, setMousePos] = useState<{ x: number; y: number }>({
-    x: typeof window !== 'undefined' ? window.innerWidth / 2 : 500,
-    y: typeof window !== 'undefined' ? window.innerHeight / 3 : 300,
-  });
+  const [mouseOffset, setMouseOffset] = useState({ x: 0, y: 0 });
 
-  // Track mouse coordinates for interactive volumetric lighting
+  // Subtle interactive parallax offset for the chromatic torus
   useEffect(() => {
     let animationFrameId: number;
-    let targetX = window.innerWidth / 2;
-    let targetY = window.innerHeight / 3;
-    let currentX = targetX;
-    let currentY = targetY;
+    let targetX = 0;
+    let targetY = 0;
+    let currentX = 0;
+    let currentY = 0;
 
     const handleMouseMove = (e: MouseEvent) => {
-      targetX = e.clientX;
-      targetY = e.clientY;
+      const centerX = window.innerWidth / 2;
+      const centerY = window.innerHeight / 2;
+      targetX = (e.clientX - centerX) / 45;
+      targetY = (e.clientY - centerY) / 45;
     };
 
     window.addEventListener('mousemove', handleMouseMove, { passive: true });
 
-    // Smooth lerp loop for the interactive spotlight
     const lerpLoop = () => {
-      currentX += (targetX - currentX) * 0.06;
-      currentY += (targetY - currentY) * 0.06;
-      setMousePos({ x: Math.round(currentX), y: Math.round(currentY) });
+      currentX += (targetX - currentX) * 0.05;
+      currentY += (targetY - currentY) * 0.05;
+      setMouseOffset({ x: currentX, y: currentY });
       animationFrameId = requestAnimationFrame(lerpLoop);
     };
 
@@ -52,7 +50,7 @@ export const AnimatedBackground: React.FC<AnimatedBackgroundProps> = ({ isDark }
     };
   }, []);
 
-  // Neural constellation canvas
+  // Neural constellation canvas with SRTP amber & emerald star palette
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -65,33 +63,26 @@ export const AnimatedBackground: React.FC<AnimatedBackgroundProps> = ({ isDark }
     let height = (canvas.height = window.innerHeight);
 
     const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    const particleCount = Math.min(50, Math.max(22, Math.floor(width / 40)));
+    const particleCount = Math.min(42, Math.max(18, Math.floor(width / 45)));
 
-    const darkPalette = [
-      'rgba(255, 255, 255, ',  // pure starlight
-      'rgba(56, 189, 248, ',   // cyan-400
-      'rgba(129, 140, 248, ',  // indigo-400
-      'rgba(244, 244, 245, ',  // zinc-100
-      'rgba(52, 211, 153, ',   // emerald-400
+    // SRTP Palette: Molten Gold, Vibrant Teal, Emerald, Amber, Diamond
+    const palette = [
+      'rgba(245, 158, 11, ',  // amber-500
+      'rgba(251, 191, 36, ',  // amber-400
+      'rgba(16, 185, 129, ',  // emerald-500
+      'rgba(6, 182, 212, ',   // cyan-500
+      'rgba(255, 255, 255, ',  // pure white starlight
     ];
-
-    const lightPalette = [
-      'rgba(14, 165, 233, ',   // sky-500
-      'rgba(79, 70, 229, ',    // indigo-600
-      'rgba(100, 116, 139, ',  // slate-500
-    ];
-
-    const palette = isDark ? darkPalette : lightPalette;
 
     const particles: Particle[] = [];
     for (let i = 0; i < particleCount; i++) {
       particles.push({
         x: Math.random() * width,
         y: Math.random() * height,
-        vx: (Math.random() - 0.5) * 0.35,
-        vy: (Math.random() - 0.5) * 0.35,
-        radius: Math.random() * 1.8 + 0.8,
-        baseAlpha: Math.random() * 0.4 + 0.2,
+        vx: (Math.random() - 0.5) * 0.3,
+        vy: (Math.random() - 0.5) * 0.3,
+        radius: Math.random() * 1.6 + 0.7,
+        baseAlpha: Math.random() * 0.35 + 0.15,
         color: palette[Math.floor(Math.random() * palette.length)],
       });
     }
@@ -107,9 +98,9 @@ export const AnimatedBackground: React.FC<AnimatedBackgroundProps> = ({ isDark }
     const render = () => {
       ctx.clearRect(0, 0, width, height);
 
-      const maxConnectDistance = Math.min(130, width / 9);
+      const maxConnectDistance = Math.min(120, width / 9);
 
-      // Draw connections
+      // Draw delicate neural connection filaments
       for (let i = 0; i < particles.length; i++) {
         for (let j = i + 1; j < particles.length; j++) {
           const dx = particles[i].x - particles[j].x;
@@ -117,14 +108,13 @@ export const AnimatedBackground: React.FC<AnimatedBackgroundProps> = ({ isDark }
           const dist = Math.sqrt(dx * dx + dy * dy);
 
           if (dist < maxConnectDistance) {
-            const lineAlpha = (1 - dist / maxConnectDistance) * (isDark ? 0.16 : 0.1);
+            const lineAlpha = (1 - dist / maxConnectDistance) * (isDark ? 0.14 : 0.08);
             ctx.beginPath();
             ctx.moveTo(particles[i].x, particles[i].y);
             ctx.lineTo(particles[j].x, particles[j].y);
-            ctx.strokeStyle = isDark
-              ? `rgba(255, 255, 255, ${lineAlpha})`
-              : `rgba(99, 102, 241, ${lineAlpha})`;
-            ctx.lineWidth = 0.75;
+            // Gradient connection between amber and emerald
+            ctx.strokeStyle = `rgba(16, 185, 129, ${lineAlpha})`;
+            ctx.lineWidth = 0.65;
             ctx.stroke();
           }
         }
@@ -138,7 +128,7 @@ export const AnimatedBackground: React.FC<AnimatedBackgroundProps> = ({ isDark }
         ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
         ctx.fillStyle = `${p.color}${p.baseAlpha})`;
         ctx.shadowColor = p.color + '0.5)';
-        ctx.shadowBlur = isDark ? 6 : 3;
+        ctx.shadowBlur = 5;
         ctx.fill();
         ctx.shadowBlur = 0;
 
@@ -171,81 +161,120 @@ export const AnimatedBackground: React.FC<AnimatedBackgroundProps> = ({ isDark }
       style={{ pointerEvents: 'none' }}
       aria-hidden="true"
     >
-      {/* 1. Base Deep Void Background */}
+      {/* 1. Base Deep Void Background (SRTP Noir) */}
       <div
         className="absolute inset-0 pointer-events-none"
         style={{
           background: isDark
-            ? 'radial-gradient(ellipse at 50% 15%, #181920 0%, #0c0d12 45%, #050608 100%)'
-            : 'radial-gradient(ellipse at 50% 15%, #f8fafc 0%, #f1f5f9 60%, #e2e8f0 100%)',
+            ? 'radial-gradient(ellipse at 50% 20%, #0d0f14 0%, #06070a 60%, #020304 100%)'
+            : 'radial-gradient(ellipse at 50% 20%, #fefcf8 0%, #f8fafc 60%, #edf2f7 100%)',
         }}
       />
 
-      {/* 2. Interactive Volumetric Spotlight (Glides with cursor and sweeps across the hero) */}
+      {/* 2. Warm Molten Amber / Solar Nebula (Bottom-Left from SRTP Abstract Background 32) */}
       <div
-        className="absolute inset-0 pointer-events-none transition-opacity duration-500"
+        className="absolute -bottom-[10%] -left-[10%] w-[550px] sm:w-[800px] h-[550px] sm:h-[800px] rounded-full blur-[140px] opacity-45 dark:opacity-60 animate-srtp-drift pointer-events-none"
         style={{
-          background: isDark
-            ? `radial-gradient(750px circle at ${mousePos.x}px ${mousePos.y}px, rgba(255, 255, 255, 0.14) 0%, rgba(200, 215, 240, 0.06) 35%, rgba(6, 182, 212, 0.04) 55%, transparent 75%)`
-            : `radial-gradient(600px circle at ${mousePos.x}px ${mousePos.y}px, rgba(99, 102, 241, 0.12) 0%, rgba(56, 189, 248, 0.06) 40%, transparent 70%)`,
+          background:
+            'radial-gradient(circle, rgba(245, 158, 11, 0.35) 0%, rgba(217, 119, 6, 0.18) 40%, rgba(180, 83, 9, 0.05) 70%, transparent 85%)',
         }}
       />
 
-      {/* 3. Volumetric Ethereal Atmospheric Aura Cloud (Center glow behind headline) */}
+      {/* 3. Bioluminescent Emerald & Neon Cyan Nebula (Bottom-Right from SRTP Abstract Background 32) */}
       <div
-        className="absolute top-[10%] left-1/2 -translate-x-1/2 w-[650px] sm:w-[950px] h-[450px] sm:h-[600px] rounded-full blur-[140px] opacity-40 dark:opacity-55 animate-aurora-float-1 pointer-events-none"
+        className="absolute -bottom-[15%] -right-[10%] w-[600px] sm:w-[900px] h-[600px] sm:h-[900px] rounded-full blur-[150px] opacity-50 dark:opacity-65 animate-srtp-aura pointer-events-none"
         style={{
-          background: isDark
-            ? 'radial-gradient(ellipse at center, rgba(255, 255, 255, 0.28) 0%, rgba(220, 230, 245, 0.15) 30%, rgba(56, 189, 248, 0.08) 60%, transparent 80%)'
-            : 'radial-gradient(ellipse at center, rgba(147, 197, 253, 0.35) 0%, rgba(199, 210, 254, 0.2) 40%, transparent 75%)',
+          background:
+            'radial-gradient(circle, rgba(16, 185, 129, 0.35) 0%, rgba(6, 182, 212, 0.22) 40%, rgba(4, 120, 87, 0.08) 70%, transparent 85%)',
         }}
       />
 
-      {/* 4. Secondary Organic Ambient Drift Cloud (Lower Right) */}
+      {/* 4. THE ICONIC SRTP CHROMATIC TORUS RING ("The Lens of Truth") */}
+      {/* Placed prominently on the right side of hero matching srtp_theme.jpg */}
       <div
-        className="absolute top-[50%] -right-[5%] w-[500px] sm:w-[700px] h-[500px] sm:h-[700px] rounded-full blur-[130px] opacity-25 dark:opacity-35 animate-aurora-float-2 pointer-events-none"
+        className="absolute top-[8%] lg:top-[12%] right-[2%] lg:right-[6%] w-[380px] sm:w-[520px] md:w-[620px] lg:w-[680px] h-[380px] sm:h-[520px] md:h-[620px] lg:h-[680px] pointer-events-none transition-transform duration-700 ease-out select-none"
         style={{
-          background: isDark
-            ? 'radial-gradient(circle, rgba(168, 85, 247, 0.22) 0%, rgba(99, 102, 241, 0.12) 50%, transparent 75%)'
-            : 'radial-gradient(circle, rgba(196, 181, 253, 0.25) 0%, transparent 70%)',
+          transform: `translate3d(${mouseOffset.x}px, ${mouseOffset.y}px, 0)`,
         }}
-      />
+      >
+        {/* Outer Chromatic Volumetric Flare */}
+        <div
+          className="absolute inset-0 rounded-full blur-[75px] opacity-60 dark:opacity-75 animate-srtp-aura"
+          style={{
+            background:
+              'conic-gradient(from 45deg, rgba(245, 158, 11, 0.6) 0deg, rgba(251, 191, 36, 0.7) 60deg, rgba(217, 119, 6, 0.5) 120deg, rgba(16, 185, 129, 0.65) 180deg, rgba(6, 182, 212, 0.75) 240deg, rgba(52, 211, 153, 0.6) 300deg, rgba(245, 158, 11, 0.6) 360deg)',
+          }}
+        />
 
-      {/* 5. Tertiary Ambient Grounding Cloud (Bottom Left) */}
-      <div
-        className="absolute bottom-[5%] -left-[5%] w-[450px] sm:w-[650px] h-[450px] sm:h-[650px] rounded-full blur-[130px] opacity-20 dark:opacity-30 animate-aurora-float-3 pointer-events-none"
-        style={{
-          background: isDark
-            ? 'radial-gradient(circle, rgba(6, 182, 212, 0.2) 0%, rgba(16, 185, 129, 0.08) 50%, transparent 75%)'
-            : 'radial-gradient(circle, rgba(110, 231, 183, 0.2) 0%, transparent 70%)',
-        }}
-      />
+        {/* The Torus Swirling Fluid Ring Body (Exact 3D gradient torus curvature) */}
+        <div
+          className="absolute inset-[10%] rounded-full animate-srtp-torus"
+          style={{
+            background:
+              'conic-gradient(from 55deg, #f59e0b 0deg, #fbbf24 45deg, #ea580c 90deg, #10b981 160deg, #06b6d4 210deg, #2dd4bf 260deg, #059669 310deg, #f59e0b 360deg)',
+            filter: 'blur(1.5px)',
+            boxShadow:
+              '0 0 60px rgba(245, 158, 11, 0.4), 0 0 90px rgba(16, 185, 129, 0.4), inset 0 0 40px rgba(0, 0, 0, 0.8)',
+          }}
+        />
 
-      {/* 6. Iconic Halftone / Dither Mesh Screen Overlay (Tactile dot texture from reference) */}
+        {/* Inner Secondary Fluid Wave Layer (Creates the 3D twist ribbon depth) */}
+        <div
+          className="absolute inset-[15%] rounded-full opacity-85 mix-blend-screen animate-srtp-aura"
+          style={{
+            background:
+              'conic-gradient(from 220deg, transparent 0deg, rgba(6, 182, 212, 0.8) 50deg, rgba(16, 185, 129, 0.9) 110deg, transparent 180deg, rgba(251, 191, 36, 0.8) 260deg, rgba(245, 158, 11, 0.9) 320deg, transparent 360deg)',
+            filter: 'blur(3px)',
+          }}
+        />
+
+        {/* Central Obsidian Aperture (The inner void of the torus) */}
+        <div
+          className="absolute inset-[30%] rounded-full"
+          style={{
+            background: isDark
+              ? 'radial-gradient(circle, #050608 65%, rgba(5, 6, 8, 0.95) 85%, transparent 100%)'
+              : 'radial-gradient(circle, #f8fafc 65%, rgba(248, 250, 252, 0.95) 85%, transparent 100%)',
+            boxShadow:
+              'inset 0 0 45px rgba(0, 0, 0, 0.95), 0 0 35px rgba(0, 0, 0, 0.8)',
+          }}
+        />
+
+        {/* Central Core Truth Glow */}
+        <div
+          className="absolute inset-[40%] rounded-full blur-[25px] opacity-25 animate-pulse"
+          style={{
+            background:
+              'radial-gradient(circle, rgba(16, 185, 129, 0.5) 0%, rgba(245, 158, 11, 0.3) 60%, transparent 100%)',
+          }}
+        />
+      </div>
+
+      {/* 5. Tactile Halftone Dither Texture Overlay */}
       <div
         className="absolute inset-0 pointer-events-none transition-opacity duration-500"
         style={{
           backgroundImage: isDark
-            ? 'radial-gradient(rgba(255, 255, 255, 0.15) 1px, transparent 1px)'
-            : 'radial-gradient(rgba(15, 23, 42, 0.07) 1px, transparent 1px)',
+            ? 'radial-gradient(rgba(255, 255, 255, 0.14) 1px, transparent 1px)'
+            : 'radial-gradient(rgba(15, 23, 42, 0.06) 1px, transparent 1px)',
           backgroundSize: '3px 3px',
-          opacity: isDark ? 0.65 : 0.45,
+          opacity: isDark ? 0.45 : 0.3,
         }}
       />
 
-      {/* 7. Neural Truth Constellation Canvas */}
+      {/* 6. Truth Constellation Network Canvas */}
       <canvas
         ref={canvasRef}
         className="absolute inset-0 w-full h-full block pointer-events-none"
       />
 
-      {/* 8. Vignette Edge Shading for Cinematic Depth */}
+      {/* 7. Vignette Shading for Cinematic Edge Focus */}
       <div
         className="absolute inset-0 pointer-events-none"
         style={{
           background: isDark
-            ? 'radial-gradient(ellipse at 50% 50%, transparent 45%, rgba(5, 6, 8, 0.65) 100%)'
-            : 'radial-gradient(ellipse at 50% 50%, transparent 55%, rgba(226, 232, 240, 0.45) 100%)',
+            ? 'radial-gradient(ellipse at 50% 50%, transparent 40%, rgba(4, 5, 7, 0.7) 100%)'
+            : 'radial-gradient(ellipse at 50% 50%, transparent 50%, rgba(226, 232, 240, 0.5) 100%)',
         }}
       />
     </div>

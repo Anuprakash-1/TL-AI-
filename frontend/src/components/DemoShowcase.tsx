@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Sparkles, ArrowRight, CheckCircle2, XCircle, AlertTriangle, Shield, Play } from 'lucide-react';
+import React from 'react';
+import { ArrowRight, CheckCircle2, XCircle, AlertTriangle } from 'lucide-react';
 import { Language, translations } from '../i18n';
 
 interface DemoShowcaseProps {
@@ -9,7 +9,6 @@ interface DemoShowcaseProps {
 
 export const DemoShowcase: React.FC<DemoShowcaseProps> = ({ onSelectDemo, lang }) => {
   const t = translations[lang];
-  const [activeSlide, setActiveSlide] = useState(0);
 
   const demos = [
     {
@@ -72,46 +71,42 @@ export const DemoShowcase: React.FC<DemoShowcaseProps> = ({ onSelectDemo, lang }
 
   return (
     <section className="w-full max-w-6xl mx-auto px-4 py-12 select-none">
-      {/* 1. Narrative Intro Section (Directly replicating frame 42 of reference GIF:
-             "Hi, I'm Wegic... An AI web designer... With support from three amazing assistants...") */}
+      {/* Narrative Intro Section */}
       <div className="max-w-3xl mb-12 space-y-3">
         <h3 className="text-xl sm:text-2xl font-bold text-white flex items-center gap-2">
-          <span>Hi, I'm</span>
-          <span className="font-extrabold tracking-tight px-2.5 py-0.5 rounded-lg bg-white/10 text-white border border-white/20">
-            TruthLens
+          <span>Explore</span>
+          <span className="font-extrabold tracking-tight px-3 py-0.5 rounded-lg bg-gradient-to-r from-amber-400/20 to-emerald-400/20 text-white border border-emerald-500/30">
+            TruthLens Evidence
           </span>
         </h3>
         <p className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-white leading-tight">
           {lang === 'en'
-            ? 'An AI misinformation & fact verification engine by your side.'
-            : 'एक निष्पक्ष AI तथ्य-सत्यापन एवं भ्रामक सूचना विश्लेषक आपके साथ।'}
+            ? 'Independent fact-checking with traceable citations.'
+            : 'पारदर्शी साक्ष्यों के साथ खबरों का वास्तविक विश्लेषण।'}
         </p>
         <p className="text-base sm:text-lg text-white/60 leading-relaxed">
           {lang === 'en'
-            ? 'With support from official gazettes, international press bureaus, and verified databases, I bring the truth to light.'
-            : 'सरकारी गजट, आधिकारिक अभिलेखागार, अंतरराष्ट्रीय समाचार एजेंसियों और प्रमाणित डेटाबेसों के माध्यम से सत्य को सामने लाना।'}
-        </p>
-        <p className="text-sm font-semibold text-white/90 pt-1">
-          {lang === 'en' ? "Let's inspect featured investigations:" : 'प्रमुख सत्यापित मामलों का अवलोकन करें:'}
+            ? 'Cross-referencing government records, official press bulletins, and international registries to separate fact from viral fabrication.'
+            : 'सरकारी अभिलेखागारों और अधिकृत समाचार एजेंसियों से मिलान कर अफवाहों का खंडन।'}
         </p>
       </div>
 
-      {/* 2. Headline with Faded Watermark & Page Counter (Replicating frame 85 in reference) */}
+      {/* Headline with SRTP Amber/Teal Accents */}
       <div className="relative mb-8 flex items-end justify-between border-b border-white/10 pb-4">
         <div>
-          <span className="text-xs uppercase font-mono tracking-widest text-white/40 block mb-1">
-            Featured Evidence Showcase
+          <span className="text-xs uppercase font-mono tracking-widest text-amber-400/90 font-bold block mb-1">
+            Featured Investigations
           </span>
           <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
             RECENT FACT-CHECKS
           </h2>
         </div>
-        <div className="text-xs font-mono font-bold text-white/50 tracking-wider">
-          <span>1 / 4</span>
+        <div className="text-xs font-mono font-bold text-teal-400/80 tracking-wider">
+          <span>4 VERIFIED CASES</span>
         </div>
       </div>
 
-      {/* 3. Dark Sleek Testimonial / Evidence Source Cards (Replicating frame 128 in reference GIF) */}
+      {/* Sleek Dark Obsidian Glass Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
         {demos.map((demo) => {
           const Icon = demo.icon;
@@ -119,16 +114,19 @@ export const DemoShowcase: React.FC<DemoShowcaseProps> = ({ onSelectDemo, lang }
             <div
               key={demo.id}
               onClick={() => onSelectDemo(demo.id)}
-              className="group cursor-pointer rounded-2xl bg-neutral-900/60 dark:bg-black/60 backdrop-blur-xl border border-white/10 hover:border-white/30 p-5 sm:p-6 transition-all duration-300 hover:shadow-2xl flex flex-col justify-between relative overflow-hidden"
+              className="group cursor-pointer rounded-2xl bg-black/60 dark:bg-black/75 backdrop-blur-xl border border-white/10 hover:border-emerald-500/40 p-5 sm:p-6 transition-all duration-300 hover:shadow-2xl hover:shadow-emerald-500/5 flex flex-col justify-between relative overflow-hidden"
             >
-              {/* Top Row: Avatar / Handle / Close-Check icon */}
+              {/* Top Accent Gradient on Hover */}
+              <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-amber-400 to-teal-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+
+              {/* Top Row: Avatar / Handle / Verdict Badge */}
               <div className="flex items-center justify-between pb-4 mb-4 border-b border-white/10">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-white/10 border border-white/20 flex items-center justify-center text-white font-bold text-sm">
+                  <div className="w-10 h-10 rounded-full bg-white/5 border border-white/15 flex items-center justify-center text-amber-300 font-bold text-sm group-hover:border-emerald-400 transition-colors">
                     {demo.sourceOrg.charAt(0)}
                   </div>
                   <div>
-                    <h4 className="text-sm font-bold text-white group-hover:text-cyan-300 transition-colors">
+                    <h4 className="text-sm font-bold text-white group-hover:text-emerald-300 transition-colors">
                       {demo.sourceOrg}
                     </h4>
                     <span className="text-xs text-white/40 font-mono">{demo.handle}</span>
@@ -159,7 +157,7 @@ export const DemoShowcase: React.FC<DemoShowcaseProps> = ({ onSelectDemo, lang }
                 <span className="truncate max-w-[240px]">
                   Sources: {demo.sources}
                 </span>
-                <span className="flex items-center gap-1 font-semibold text-white/80 group-hover:text-white group-hover:translate-x-0.5 transition-all">
+                <span className="flex items-center gap-1 font-semibold text-white/80 group-hover:text-emerald-300 group-hover:translate-x-0.5 transition-all">
                   <span>Inspect Audit</span>
                   <ArrowRight className="w-3.5 h-3.5" />
                 </span>

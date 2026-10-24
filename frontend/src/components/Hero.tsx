@@ -1,5 +1,5 @@
 import React from 'react';
-import { ShieldCheck, Database, CheckCircle2 } from 'lucide-react';
+import { ShieldCheck, Database, CheckCircle2, Shield, Search, ExternalLink, Activity } from 'lucide-react';
 import { Language, translations } from '../i18n';
 
 interface HeroProps {
@@ -7,105 +7,124 @@ interface HeroProps {
   liveSearchActive: boolean;
 }
 
-// Crisp Vector Laurel Wreath component matching the awards in the reference design
-const LaurelWreath: React.FC<{ labelTop: string; labelBottom: string }> = ({
-  labelTop,
-  labelBottom,
-}) => (
-  <div className="flex items-center gap-1.5 sm:gap-2 select-none group">
-    {/* Left Laurel Branch */}
-    <svg
-      className="w-5 h-8 sm:w-6 sm:h-10 text-white/70 group-hover:text-white transition-colors duration-300"
-      viewBox="0 0 24 40"
-      fill="currentColor"
-    >
-      <path d="M12 2C11 5 8 7 6 10C4 13 4 16 5 19C3 16 3 12 5 8C7 4 10 2 12 2Z" />
-      <path d="M10 8C8 11 5 13 3 16C1 19 2 22 3 25C1 22 1 18 3 14C5 10 8 8 10 8Z" />
-      <path d="M9 16C7 19 5 21 4 24C3 27 4 30 5 32C3 29 3 25 5 22C7 19 8 17 9 16Z" />
-      <path d="M11 25C9 28 8 31 8 34C8 37 9 39 11 40C9 38 7 35 7 32C7 29 9 26 11 25Z" />
-    </svg>
-
-    {/* Center Text */}
-    <div className="flex flex-col items-center justify-center text-center leading-tight">
-      <span className="text-[10px] sm:text-xs font-medium tracking-wide text-white/60 dark:text-white/70 group-hover:text-white/90 transition-colors uppercase">
-        {labelTop}
-      </span>
-      <span className="text-xs sm:text-sm md:text-base font-bold tracking-tight text-white group-hover:text-cyan-300 transition-colors">
-        {labelBottom}
-      </span>
-    </div>
-
-    {/* Right Laurel Branch (Mirrored) */}
-    <svg
-      className="w-5 h-8 sm:w-6 sm:h-10 text-white/70 group-hover:text-white transition-colors duration-300 -scale-x-100"
-      viewBox="0 0 24 40"
-      fill="currentColor"
-    >
-      <path d="M12 2C11 5 8 7 6 10C4 13 4 16 5 19C3 16 3 12 5 8C7 4 10 2 12 2Z" />
-      <path d="M10 8C8 11 5 13 3 16C1 19 2 22 3 25C1 22 1 18 3 14C5 10 8 8 10 8Z" />
-      <path d="M9 16C7 19 5 21 4 24C3 27 4 30 5 32C3 29 3 25 5 22C7 19 8 17 9 16Z" />
-      <path d="M11 25C9 28 8 31 8 34C8 37 9 39 11 40C9 38 7 35 7 32C7 29 9 26 11 25Z" />
-    </svg>
-  </div>
-);
-
 export const Hero: React.FC<HeroProps> = ({ lang, liveSearchActive }) => {
   const t = translations[lang];
 
   return (
-    <section className="pt-2 sm:pt-4 pb-2 text-center max-w-6xl mx-auto px-4 select-none">
-      {/* 1. Laurel Wreath Accolades (Directly matching the awards in the reference design) */}
-      <div className="flex items-center justify-center gap-4 sm:gap-10 md:gap-14 mb-6 sm:mb-8 flex-wrap">
-        <LaurelWreath
-          labelTop={lang === 'en' ? 'AI Fact-Checking' : 'तथ्य-जांच सटीकता'}
-          labelBottom={lang === 'en' ? '99.4% Accuracy' : '99.4% सटीक'}
-        />
-        <LaurelWreath
-          labelTop={lang === 'en' ? 'Multi-Source Intel' : 'विश्वसनीय स्रोत नेटवर्क'}
-          labelBottom={lang === 'en' ? '1st In Class' : '#1 प्रथम'}
-        />
-        <LaurelWreath
-          labelTop={lang === 'en' ? 'Verification Speed' : 'अनुसंधान गति'}
-          labelBottom={lang === 'en' ? '< 1.2s Real-Time' : '< 1.2s त्वरित'}
-        />
+    <section className="pt-2 sm:pt-6 pb-2 max-w-6xl mx-auto px-4 sm:px-6 relative select-none">
+      {/* Subtle Floating Left Social / Navigation Rail (Directly matching srtp_theme.jpg) */}
+      <div className="hidden xl:flex fixed left-6 top-1/3 flex-col items-center gap-4 text-white/50 z-30 pointer-events-auto">
+        <a
+          href="https://github.com/Anuprakash-1/TL-AI-"
+          target="_blank"
+          rel="noreferrer"
+          className="w-8 h-8 rounded-full border border-white/20 hover:border-amber-400 hover:text-amber-400 flex items-center justify-center transition-all bg-black/40 backdrop-blur-md"
+          title="GitHub Repository"
+        >
+          <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor">
+            <path fillRule="evenodd" clipRule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/>
+          </svg>
+        </a>
+        <button
+          onClick={() => {
+            const el = document.getElementById('section-methodology');
+            el?.scrollIntoView({ behavior: 'smooth' });
+          }}
+          className="w-8 h-8 rounded-full border border-white/20 hover:border-teal-400 hover:text-teal-400 flex items-center justify-center transition-all bg-black/40 backdrop-blur-md"
+          title="Methodology & Standards"
+        >
+          <Database className="w-3.5 h-3.5" />
+        </button>
+        <button
+          onClick={() => {
+            const el = document.getElementById('section-demos');
+            el?.scrollIntoView({ behavior: 'smooth' });
+          }}
+          className="w-8 h-8 rounded-full border border-white/20 hover:border-amber-400 hover:text-amber-400 flex items-center justify-center transition-all bg-black/40 backdrop-blur-md"
+          title="Verified Investigations"
+        >
+          <CheckCircle2 className="w-3.5 h-3.5" />
+        </button>
+        <div className="w-[1px] h-12 bg-gradient-to-b from-white/30 to-transparent" />
       </div>
 
-      {/* 2. Giant Commanding Headline (Replicating "Magic Your Site / Chat by Chat") */}
-      <h1 className="text-4xl sm:text-6xl md:text-7xl lg:text-8xl font-black tracking-tight text-white mb-4 sm:mb-6 leading-[1.05] drop-shadow-[0_4px_30px_rgba(255,255,255,0.15)]">
-        {lang === 'en' ? (
-          <>
-            <span className="block text-white">Verify Truth</span>
-            <span className="block bg-gradient-to-b from-white via-slate-100 to-slate-400 bg-clip-text text-transparent">
-              Claim by Claim
-            </span>
-          </>
-        ) : (
-          <>
-            <span className="block text-white">सत्य का अन्वेषण</span>
-            <span className="block bg-gradient-to-b from-white via-slate-100 to-slate-400 bg-clip-text text-transparent">
-              तथ्य दर तथ्य
-            </span>
-          </>
-        )}
-      </h1>
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+        {/* Left Column: Headline and Context (Matching srtp_theme.jpg text layout) */}
+        <div className="lg:col-span-8 text-left space-y-5">
+          {/* Live Status Pill with SRTP Amber/Teal Glow */}
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-semibold bg-white/5 border border-white/10 backdrop-blur-md text-white/80 shadow-lg">
+            <span
+              className={`w-2.5 h-2.5 rounded-full ${
+                liveSearchActive
+                  ? 'bg-gradient-to-r from-amber-400 to-emerald-400 shadow-[0_0_10px_rgba(16,185,129,0.8)] animate-pulse'
+                  : 'bg-amber-500'
+              }`}
+            />
+            <span className="tracking-wide">{t.status_active}</span>
+            <span className="text-white/30">•</span>
+            <span className="text-white/60 hidden sm:inline">Official Archives & Live Press Wires</span>
+          </div>
 
-      {/* 3. Sleek Trust Indicators */}
-      <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-6 text-xs text-white/70 mb-4 sm:mb-6">
-        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 border border-white/10 backdrop-blur-md">
-          <span className={`w-2 h-2 rounded-full ${liveSearchActive ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'}`} />
-          <span className="text-white/80 font-medium">{t.status_active}</span>
+          {/* Main Display Headline (Matching "Your Headline Text Here" bold typography) */}
+          <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black tracking-tight text-white leading-[1.08] drop-shadow-[0_4px_30px_rgba(0,0,0,0.8)]">
+            {lang === 'en' ? (
+              <>
+                <span className="block text-white">Verify Truth</span>
+                <span className="block bg-gradient-to-r from-amber-400 via-emerald-300 to-teal-400 bg-clip-text text-transparent">
+                  Claim by Claim
+                </span>
+              </>
+            ) : (
+              <>
+                <span className="block text-white">सत्य का अन्वेषण</span>
+                <span className="block bg-gradient-to-r from-amber-400 via-emerald-300 to-teal-400 bg-clip-text text-transparent">
+                  तथ्य दर तथ्य
+                </span>
+              </>
+            )}
+          </h1>
+
+          {/* "More Info" Section (Directly matching bottom-left text block in srtp_theme.jpg) */}
+          <div className="pt-2 max-w-xl space-y-1.5">
+            <h4 className="text-xs uppercase font-mono tracking-wider text-amber-400/90 font-bold flex items-center gap-1.5">
+              <span>✦</span>
+              <span>More Info</span>
+            </h4>
+            <p className="text-xs sm:text-sm text-white/70 leading-relaxed">
+              {lang === 'en'
+                ? 'Autonomous multi-source intelligence cross-referencing official gazettes, constitutional registries (PIB, ECI, Courts), and verified international press wires. Traceable evidence with zero AI hallucinations.'
+                : 'सरकारी गजट, आधिकारिक अभिलेखागार (PIB, सुप्रीम कोर्ट, चुनाव आयोग) और अंतरराष्ट्रीय समाचार एजेंसियों से वास्तविक समय में साक्ष्य-आधारित सत्यापन।'}
+            </p>
+          </div>
+
+          {/* Trust Badges */}
+          <div className="flex flex-wrap items-center gap-3 sm:gap-6 text-xs text-white/60 pt-1">
+            <div className="flex items-center gap-1.5 text-emerald-400">
+              <ShieldCheck className="w-3.5 h-3.5" />
+              <span>Real Citations Only</span>
+            </div>
+            <div className="flex items-center gap-1.5 text-amber-400">
+              <Database className="w-3.5 h-3.5" />
+              <span>Public Registries</span>
+            </div>
+            <div className="flex items-center gap-1.5 text-teal-300">
+              <CheckCircle2 className="w-3.5 h-3.5" />
+              <span>IFCN Code Compliant</span>
+            </div>
+          </div>
         </div>
-        <div className="hidden sm:flex items-center gap-1.5">
-          <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-          <span>Real Citations Only</span>
-        </div>
-        <div className="hidden sm:flex items-center gap-1.5">
-          <Database className="w-3.5 h-3.5 text-cyan-400" />
-          <span>Public Archives (PIB, ECI, Courts, WHO)</span>
-        </div>
-        <div className="hidden sm:flex items-center gap-1.5">
-          <CheckCircle2 className="w-3.5 h-3.5 text-indigo-400" />
-          <span>IFCN Fact-Checking Signatories</span>
+
+        {/* Right Column: "Your Product Text" caption under the Torus */}
+        <div className="hidden lg:flex lg:col-span-4 flex-col justify-end items-end text-right space-y-1 pr-4">
+          <span className="text-xs uppercase font-mono tracking-widest text-teal-400/90 font-bold">
+            Portal of Verification
+          </span>
+          <p className="text-sm font-extrabold text-white">
+            TruthLens AI Engine
+          </p>
+          <p className="text-xs text-white/50 max-w-[200px]">
+            Real-time neural citation & evidence synthesis.
+          </p>
         </div>
       </div>
     </section>
